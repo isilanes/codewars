@@ -4,48 +4,36 @@ import math
 
 
 def decompose(n):
-    alive = []
-    for i in range(1, n):
-        e = {
-            "members": [i],
-            "remainder": n**2 - i**2,
-        }
-        alive.append(e)
+    snake = [n-1]
+    rem = n**2 - (n-1)**2
 
-    final_alive = []
-    for i in range(6):
-        next_alive = []
-        for e in alive:
-            rem = e["remainder"]
-            members = e["members"]
-            largest_so_far = members[-1]
+    while True:
+        print("DEBUG11", snake, rem)
+        next = min(snake[-1]-1, int(math.sqrt(rem)))
+        rem -= next**2
 
-            for new in range(largest_so_far+1, int(math.sqrt(rem))+1):
-                if new in members:
-                    continue
+        if rem == 0:
+            snake.append(next)
+            return snake[::-1]
 
-                new_rem = rem - new**2
-                new_e = {
-                    "members": members + [new],
-                    "remainder": new_rem,
-                }
+        if next > 1:
+            snake.append(next)
+            continue
 
-                if new_rem == 0:
-                    final_alive.append(new_e)
-                    continue
+        if snake[-1] == 1:
+            snake = snake[:-1]
 
-                next_alive.append(new_e)
+        snake[-1] -= 1
 
-        if not next_alive:
-            break
+    return None
 
-        alive = next_alive
-
-    if not final_alive:
-        return None
-
-    return sorted([e["members"][::-1] for e in final_alive])[-1][::-1]
 
 
 if __name__ == "__main__":
-    print(decompose(11))
+    #assert decompose(5) == [3, 4]
+    #assert decompose(8) is None
+    #assert decompose(11) == [1, 2, 4, 10]
+    assert decompose(12) == [1, 2, 3, 7, 9]
+    assert decompose(50) == [1, 2, 5, 8, 49]
+    assert decompose(7100) == [2, 3, 5, 119, 7099]
+    assert decompose(7654321) == [6, 10, 69, 39,12, 7654320]
