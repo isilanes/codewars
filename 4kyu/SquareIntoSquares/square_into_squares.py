@@ -2,6 +2,7 @@
 
 import math
 
+
 class Snake:
 
     def __init__(self, n):
@@ -32,6 +33,7 @@ class Snake:
     def size(self):
         return len(self.members)
 
+
 def decompose(n):
     snake = Snake(n)
 
@@ -39,9 +41,9 @@ def decompose(n):
         if snake.remaining == 0:
             return snake.members[::-1]
 
-        next = snake.next_value()
+        next_value = snake.next_value()
 
-        if next == 1 and snake.remaining != 1:
+        if next_value == 1 and snake.remaining != 1:
             snake.decrement_last()
             while snake.last == 1:
                 snake.chomp()
@@ -52,10 +54,9 @@ def decompose(n):
 
             continue
 
-        snake.grow(next)
+        snake.grow(next_value)
 
     return None
-
 
 
 if __name__ == "__main__":
