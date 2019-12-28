@@ -92,6 +92,7 @@ class Board:
         self.initial = self._to_1d(initial)
         self.vacant_indices = [i for i, v in enumerate(self.initial) if v == 0]
         self.vacant_allowed = self._get_vacant_allowed()
+        self.vacant_affected_by = self._get_vacant_affected_by()
 
     def _get_vacant_allowed(self):
         """
@@ -100,8 +101,26 @@ class Board:
         """
         allowed = []
         for i in self.vacant_indices:
-            forbidden = [self.initial[k] for k in self.AFFECTS[i]]
-            a = [j for j in range(9) if j not in forbidden]
+            forbidden = [self.initial[k] for k in self.AFFECTS[i] if self.initial[k] != 0]
+            a = [j for j in range(1, 10) if j not in forbidden]
+            allowed.append(a)
+
+        return allowed
+
+    def _get_vacant_affected_by(self):
+        """
+        For every vacant cell, give list of indices of cells this cell is affected by (or it affects, which is
+        the same) and are also in vacant cell list.
+        Give only indices smaller than oneself (say each cell is affected by previous cells).
+
+        :return: list of int lists
+        """
+        affected_by = []
+        for i in self.vacant_indices:
+            a = [j for j in self.AFFECTS[i] if j < i and j in self.vacant_indices]
+            affected_by.append(a)
+
+        return affected_by
 
     @staticmethod
     def _to_1d(two_d_array):
@@ -115,8 +134,10 @@ class Board:
 def sudoku(puzzle):
     board = Board(puzzle)
 
-    print(board.initial)
-    print(board.vacant_indices)
+    print("vacant indices:", board.vacant_indices)
+    print("allowed:")
+    for i, v in zip(board.vacant_indices, board.vacant_affected_by):
+        print(i, v)
 
     return None
 
