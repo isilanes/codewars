@@ -87,12 +87,13 @@ class Board:
         79: None,
         80: None,
     }
+    MAX_CYCLES = 10**6  # just in case something goes wrong
 
     def __init__(self, initial):
         self.initial = self._to_1d(initial)
         self.vacant_indices = [i for i, v in enumerate(self.initial) if v == 0]
         self.vacant_allowed = self._get_vacant_allowed()
-        self.vacant_affected_by = self._get_vacant_affected_by()
+        self.reduced_vacant_affected_by = self._get_reduced_vacant_affected_by()
 
     def _get_vacant_allowed(self):
         """
@@ -107,20 +108,64 @@ class Board:
 
         return allowed
 
-    def _get_vacant_affected_by(self):
+    def _get_reduced_vacant_affected_by(self):
         """
         For every vacant cell, give list of indices of cells this cell is affected by (or it affects, which is
-        the same) and are also in vacant cell list.
-        Give only indices smaller than oneself (say each cell is affected by previous cells).
+        the same) and are also in vacant cell list. Give only indices smaller than oneself (say each cell is affected
+        by previous cells). For each i-th vacant cell give list of affecting/affected cell indices
+        with respect to reduced (vacant-cell) index list, not 0-80 list of all cells.
 
-        :return: list of int lists
+        :return: list of int lists.
         """
         affected_by = []
         for i in self.vacant_indices:
-            a = [j for j in self.AFFECTS[i] if j < i and j in self.vacant_indices]
+            a = [self.vacant_indices.index(j) for j in self.AFFECTS[i] if j < i and j in self.vacant_indices]
             affected_by.append(a)
 
         return affected_by
+
+    def solve(self):
+        """Return solved sudoku."""
+
+        # i-th element in index_allowed is j if we are proposing as solution for cell with i-th index in
+        # self.vacant_indices the j-th value in its vacant_allowed values.
+        index_allowed = [0 for _ in self.vacant_indices]
+
+        # Index in self.vacant_indices of cell currently being considered:
+        curr_reduced_vacant_i = 0
+
+        for cycle in range(self.MAX_CYCLES):
+            # For current vacant cell, list of values that are forbidden, because they appear in some other previous
+            # cell that affects current cell:
+            forbidden = []
+            for i_prev in self.reduced_vacant_affected_by[curr_reduced_vacant_i]:
+                v_prev = self.vacant_allowed[i_prev][index_allowed[i_prev]]
+                forbidden.append(v_prev)
+
+            chosen_j = None
+            for j_curr in range(index_allowed[curr_reduced_vacant_i], len(self.vacant_allowed[curr_reduced_vacant_i])):
+                v_curr = self.vacant_allowed[curr_reduced_vacant_i][j_curr]
+                if v_curr not in forbidden:
+                    chosen_j = j_curr
+                    break
+
+            if chosen_j is None:  # then no available value was valid. Go back.
+                if curr_reduced_vacant_i == 0:  # unsolvable sudoku
+                    return None
+
+                index_allowed[curr_reduced_vacant_i] = 0
+                index_allowed[curr_reduced_vacant_i-1] += 1
+                curr_reduced_vacant_i -= 1
+            else:
+                index_allowed[curr_reduced_vacant_i] = chosen_j
+                curr_reduced_vacant_i += 1
+                if curr_reduced_vacant_i >= len(self.vacant_indices):
+                    values = [self.vacant_allowed[i][j] for i, j in enumerate(index_allowed)]
+                    result = [x for x in self.initial]
+                    for i, v in zip(self.vacant_indices, values):
+                        result[i] = v
+
+                    return self._to_2d(result)
 
     @staticmethod
     def _to_1d(two_d_array):
@@ -130,16 +175,20 @@ class Board:
 
         return res
 
+    @staticmethod
+    def _to_2d(one_d_array):
+        """Inverse of _to_1d()."""
+
+        res = []
+        for i in range(9):
+            res.append(one_d_array[i*9:i*9+9])
+
+        return res
+
 
 def sudoku(puzzle):
     board = Board(puzzle)
-
-    print("vacant indices:", board.vacant_indices)
-    print("allowed:")
-    for i, v in zip(board.vacant_indices, board.vacant_affected_by):
-        print(i, v)
-
-    return None
+    return board.solve()
 
 
 def main():
