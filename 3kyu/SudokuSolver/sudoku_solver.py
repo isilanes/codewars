@@ -179,11 +179,7 @@ class Board:
     def _to_2d(one_d_array):
         """Inverse of _to_1d()."""
 
-        res = []
-        for i in range(9):
-            res.append(one_d_array[i*9:i*9+9])
-
-        return res
+        return [one_d_array[i*9:i*9+9] for i in range(9)]
 
 
 def sudoku(puzzle):
