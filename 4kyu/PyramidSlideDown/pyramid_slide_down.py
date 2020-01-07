@@ -3,24 +3,21 @@
 
 def longest_slide_down(pyramid):
 
-    n_rows = len(pyramid)
-    n_cols_last_row = n_rows  # because pyramid
+    # This list will contain the maximum possible sum of values below each position in current row:
+    accumulated_row = pyramid[-1]
 
-    maximum = pyramid[:]  # clone a triangle with equal shape
-
-    for i in range(n_cols_last_row):
-        maximum[-1][i] = pyramid[-1][i]
-    
-    for i in range(n_rows - 2, -1, -1):
+    for i in range(len(pyramid) - 2, -1, -1):  # go from 2nd-to-last row upwards until first
+        new_accumulated_row = []
         for j in range(i+1):  # len of i-th row is i+1
-            # "a" will end up with biggest number among two below current:
-            [a, b] = pyramid[i + 1][j:j + 2]
-            if b > a:
-                a = b
+            # For each number in each row, we add to it the largest of the two below. Note that each number in row
+            # below is already the largest sum from the bottom to that position:
+            a, b = accumulated_row[j:j + 2]
 
-            maximum[i][j] = pyramid[i][j] + a
+            new_accumulated_row.append(pyramid[i][j] + max(a, b))
 
-    return maximum[0][0]
+        accumulated_row = new_accumulated_row
+
+    return accumulated_row[0]
 
 
 def main():
