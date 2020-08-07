@@ -38,16 +38,7 @@ def main():
         3, 2, 1, 2, 2, 4
     )
 
-    expected = (
-        (2, 1, 4, 3, 5, 6),
-        (1, 6, 3, 2, 4, 5),
-        (4, 3, 6, 5, 1, 2),
-        (6, 5, 2, 1, 3, 4),
-        (5, 4, 1, 6, 2, 3),
-        (3, 2, 5, 4, 6, 1)
-    )
     print(solve_puzzle(clues))
-    # assert solve_puzzle(clues) == expected
 
 
 class Puzzle:
@@ -95,10 +86,13 @@ class Puzzle:
         return True
 
     def solve(self):
-        for i, combo in enumerate(self.all_combos):
-            if self.fits_in_row(0, i):
-                print(combo)
-                break
+        n_row = 0
+        while n_row < 5:
+            for i, combo in enumerate(self.all_combos):
+                if self.fits_in_row(n_row, i):
+                    print(combo)
+                    n_row += 1
+                    break
 
 
 if __name__ == "__main__":
