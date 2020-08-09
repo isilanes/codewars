@@ -48,12 +48,12 @@ class Puzzle:
 
         self.all_combos = list(permutations(range(1, 7)))
         self.solution_indices = [None for _ in range(6)]
-        self.solution = None
 
         self._row_clues = None
         self._col_clues = None
         self._seen_from_sides = None
         self._combos_for_row = None
+        self._combos_for_col = None
 
     @property
     def row_clues(self):
@@ -102,6 +102,20 @@ class Puzzle:
 
         return self._combos_for_row
 
+    @property
+    def combos_for_col(self):
+        if self._combos_for_col is None:
+            self._combos_for_col = []
+            for i_col in range(6):
+                valid_combos = [c for c in self.all_combos if self.fits_in_col(i_col, c)]
+                self._combos_for_col.append(valid_combos)
+
+        return self._combos_for_col
+
+    @property
+    def solution(self):
+        return [self.combos_for_row[i][j] for i, j in enumerate(self.solution_indices)]
+
     def fits_in_row(self, i_row, combo):
         left_clue, right_clue = self.row_clues[i_row]
         left_seen, right_seen = self.seen_from_sides[combo]
@@ -117,9 +131,6 @@ class Puzzle:
     def fits_in_col(self, j_col, combo):
         top_clue, bottom_clue = self.col_clues[j_col]
 
-        if combo not in self.seen_from_sides:
-            return False
-
         top_seen, bottom_seen = self.seen_from_sides[combo]
 
         if top_clue != 0 and top_clue != top_seen:
@@ -131,23 +142,12 @@ class Puzzle:
         return True
 
     def fits_with_previous(self, i_row, combo):
-        for i_col, number in enumerate(combo):
-            previous_numbers = [self.combos_for_row[i][j][i_col] for i, j in enumerate(self.solution_indices[:i_row])]
-            if number in previous_numbers:
-                return False
-
-        return True
-
-    def deduce_last_combo(self):
         for i_col in range(6):
-            previous_numbers = [self.combos_for_row[i][j][i_col] for i, j in enumerate(self.solution_indices[:5])]
-            yield 21 - sum(previous_numbers)  # since sum(range(1, 7)) = 21
+            fragment = [self.combos_for_row[i][j][i_col] for i, j in enumerate(self.solution_indices[:i_row])]
+            fragment = tuple(fragment + [combo[i_col]])
+            possibles = [tuple(c[:i_row+1]) for c in self.combos_for_col[i_col]]
 
-    def columns_fit(self, combo):
-        for i_col in range(6):
-            column = [self.combos_for_row[i][j][i_col] for i, j in enumerate(self.solution_indices[:5])]
-            column = tuple(column + [combo[i_col]])
-            if not self.fits_in_col(i_col, column):
+            if fragment not in possibles:
                 return False
 
         return True
@@ -155,19 +155,6 @@ class Puzzle:
     def solve(self):
         n_row = 0
         while n_row < 6:
-
-            # Last row is special:
-            if n_row == 5:
-                last_combo = tuple(self.deduce_last_combo())
-                self.columns_fit(last_combo)
-                if not self.fits_in_row(5, last_combo) or not self.columns_fit(last_combo):
-                    self.solution_indices[5] = None
-                    n_row -= 1
-                    continue
-
-                self.solution = [self.combos_for_row[i][j] for i, j in enumerate(self.solution_indices[:5])]
-                self.solution.append(last_combo)
-                break
 
             i_start = 0
             if self.solution_indices[n_row] is not None:
