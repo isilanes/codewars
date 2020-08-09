@@ -21,7 +21,6 @@ class TestFunctions(unittest.TestCase):
         self.assertEqual(seen_from_right((1, 2, 3, 6, 5, 4)), 3)
         self.assertEqual(seen_from_right((1, 3, 2, 6, 5, 4)), 3)
 
-    @unittest.skip("Final test")
     def test_solver(self):
         clues = (
             3, 2, 2, 3, 2, 1,
