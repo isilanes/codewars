@@ -116,6 +116,10 @@ class Puzzle:
 
     def fits_in_col(self, j_col, combo):
         top_clue, bottom_clue = self.col_clues[j_col]
+
+        if combo not in self.seen_from_sides:
+            return False
+
         top_seen, bottom_seen = self.seen_from_sides[combo]
 
         if top_clue != 0 and top_clue != top_seen:
