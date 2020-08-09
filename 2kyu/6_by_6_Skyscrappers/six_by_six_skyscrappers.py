@@ -44,8 +44,9 @@ def main():
 class Puzzle:
 
     def __init__(self, clues):
-        self.all_combos = list(permutations(range(1, 7)))
         self.clues = clues
+
+        self.all_combos = list(permutations(range(1, 7)))
         self.solution_indices = [None for _ in range(6)]
         self.solution = None
 
@@ -171,9 +172,6 @@ class Puzzle:
             match_found = False
             for i in range(i_start, len(self.combos_for_row[n_row])):
                 current_combo = self.combos_for_row[n_row][i]
-
-                if not self.fits_in_row(n_row, current_combo):
-                    continue
 
                 if not self.fits_with_previous(n_row, current_combo):
                     continue
