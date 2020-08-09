@@ -46,6 +46,8 @@ class Puzzle:
     def __init__(self, clues):
         self.all_combos = list(permutations(range(1, 7)))
         self.clues = clues
+        self.solution = [None for _ in range(6)]
+
         self._row_clues = None
         self._seen_from_sides = None
 
@@ -85,14 +87,41 @@ class Puzzle:
 
         return True
 
+    def fits_with_previous(self, i_row, i_combo):
+        for i, number in enumerate(self.all_combos[i_combo]):
+            previous_numbers = [self.all_combos[j][i] for j in self.solution[:i_row]]
+            if number in previous_numbers:
+                return False
+
+        return True
+
     def solve(self):
         n_row = 0
         while n_row < 5:
-            for i, combo in enumerate(self.all_combos):
-                if self.fits_in_row(n_row, i):
-                    print(combo)
-                    n_row += 1
-                    break
+
+            i_start = 0
+            if self.solution[n_row] is not None:
+                i_start = self.solution[n_row] + 1
+
+            match_found = False
+            for i in range(i_start, len(self.all_combos)):
+                if not self.fits_in_row(n_row, i):
+                    continue
+
+                if not self.fits_with_previous(n_row, i):
+                    continue
+
+                print(self.all_combos[i], "==", i)
+                self.solution[n_row] = i
+                match_found = True
+                break
+
+            if match_found:
+                n_row += 1
+            else:
+                n_row -= 1
+
+        print(self.solution)
 
 
 if __name__ == "__main__":
