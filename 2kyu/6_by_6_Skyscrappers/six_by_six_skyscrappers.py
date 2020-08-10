@@ -11,6 +11,18 @@ CLUES = [
         1, 2, 3, 3, 2, 2,
         5, 1, 2, 2, 4, 3,
         3, 2, 1, 2, 2, 4
+    ),
+    (
+        0, 0, 0, 2, 2, 0,
+        0, 0, 0, 6, 3, 0,
+        0, 4, 0, 0, 0, 0,
+        4, 4, 0, 3, 0, 0
+    ),
+    (
+        0, 3, 0, 5, 3, 4,
+        0, 0, 0, 0, 0, 1,
+        0, 3, 0, 3, 2, 3,
+        3, 2, 0, 3, 1, 0
     )
 ]
 
@@ -57,8 +69,8 @@ def seen_from_sides(combo):
     return seen_from_left(combo), seen_from_right(combo)
 
 
-def solve_puzzle(clues):
-    return Puzzle(clues).solve()
+def solve_puzzle(clues, rotate=None):
+    return Puzzle(clues).solve(rotate)
 
 
 class Puzzle:
@@ -69,6 +81,15 @@ class Puzzle:
         self.all_combos = list(permutations(range(1, 7)))
         self.solution_indices = [None for _ in range(6)]
 
+        self._row_clues = None
+        self._col_clues = None
+        self._seen_from_sides = None
+        self._combos_for_row = None
+        self._combos_for_col = None
+        self._placement_to_row = None
+
+    def clean(self):
+        self.solution_indices = [None for _ in range(6)]
         self._row_clues = None
         self._col_clues = None
         self._seen_from_sides = None
@@ -145,7 +166,7 @@ class Puzzle:
 
     @property
     def solution(self):
-        return [self.combos_for_row[i][j] for i, j in enumerate(self.solution_indices)]
+        return tuple([self.combos_for_row[i][j] for i, j in enumerate(self.solution_indices)])
 
     @property
     def n_combinations_rows(self):
@@ -217,9 +238,25 @@ class Puzzle:
             else:
                 print(f"{i} -> {self.combos_for_row[i][j]}")
 
-    def solve(self):
-        rotate = self.n_combinations_rows > self.n_combinations_cols
-        print(rotate)
+    def pre_rotate(self):
+        self.clues = self.clues[6:] + self.clues[:6]
+        self.clean()
+
+    @property
+    def rotated_solution(self):
+        r = []
+        for i_col in range(6):
+            row = tuple([self.solution[5-j][i_col] for j in range(6)])
+            r.append(row)
+
+        return tuple(r)
+
+    def solve(self, rotate=None):
+        if rotate is None:
+            rotate = self.n_combinations_rows > self.n_combinations_cols
+
+        if rotate:
+            self.pre_rotate()
 
         i_placement = 0
         while i_placement < 6:
@@ -246,13 +283,23 @@ class Puzzle:
                 self.solution_indices[i_row] = None
                 i_placement -= 1
 
-        return tuple(self.solution)
+        if rotate:
+            return self.rotated_solution
+        else:
+            return self.solution
 
 
 def main():
     opts = parse_args()
     clues = CLUES[opts.case]
-    solution = solve_puzzle(clues)
+
+    rotate = None
+    if opts.rotate:
+        rotate = True
+    elif opts.no_rotate:
+        rotate = False
+
+    solution = solve_puzzle(clues, rotate=rotate)
     for combo in solution:
         print(combo)
 
