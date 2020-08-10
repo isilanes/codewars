@@ -1,6 +1,37 @@
 # https://www.codewars.com/kata/5679d5a3f2272011d700000d
 
+import sys
+import argparse
 from itertools import permutations
+
+
+CLUES = [
+    (
+        3, 2, 2, 3, 2, 1,
+        1, 2, 3, 3, 2, 2,
+        5, 1, 2, 2, 4, 3,
+        3, 2, 1, 2, 2, 4
+    )
+]
+
+
+def parse_args(args=sys.argv[1:]):
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-c", "--case",
+                        type=int,
+                        default=0)
+
+    parser.add_argument("--rotate",
+                        action="store_true",
+                        default=False)
+
+    parser.add_argument("--no-rotate",
+                        action="store_true",
+                        default=False)
+
+    return parser.parse_args(args)
 
 
 def seen_from_left(combo):
@@ -30,17 +61,6 @@ def solve_puzzle(clues):
     return Puzzle(clues).solve()
 
 
-def main():
-    clues = (
-        3, 2, 2, 3, 2, 1,
-        1, 2, 3, 3, 2, 2,
-        5, 1, 2, 2, 4, 3,
-        3, 2, 1, 2, 2, 4
-    )
-
-    print(solve_puzzle(clues))
-
-
 class Puzzle:
 
     def __init__(self, clues):
@@ -54,6 +74,7 @@ class Puzzle:
         self._seen_from_sides = None
         self._combos_for_row = None
         self._combos_for_col = None
+        self._placement_to_row = None
 
     @property
     def row_clues(self):
@@ -113,8 +134,34 @@ class Puzzle:
         return self._combos_for_col
 
     @property
+    def placement_to_row(self):
+        """Which actual row corresponds to i-th placement."""
+
+        if self._placement_to_row is None:
+            dsu = [(len(self.combos_for_row[i]), i) for i in range(6)]
+            self._placement_to_row = [i for _, i in sorted(dsu)]
+
+        return self._placement_to_row
+
+    @property
     def solution(self):
         return [self.combos_for_row[i][j] for i, j in enumerate(self.solution_indices)]
+
+    @property
+    def n_combinations_rows(self):
+        p = 1
+        for c in self.combos_for_row:
+            p *= len(c)
+
+        return p
+
+    @property
+    def n_combinations_cols(self):
+        p = 1
+        for c in self.combos_for_col:
+            p *= len(c)
+
+        return p
 
     def fits_in_row(self, i_row, combo):
         left_clue, right_clue = self.row_clues[i_row]
@@ -141,43 +188,73 @@ class Puzzle:
 
         return True
 
-    def fits_with_previous(self, i_row, combo):
+    def fits_with_previous(self, i_placement, combo):
+        row_indices = self.placement_to_row[:i_placement + 1]
         for i_col in range(6):
-            fragment = [self.combos_for_row[i][j][i_col] for i, j in enumerate(self.solution_indices[:i_row])]
-            fragment = tuple(fragment + [combo[i_col]])
-            possibles = [tuple(c[:i_row+1]) for c in self.combos_for_col[i_col]]
+            numbers = []
+            for i_row in row_indices[:-1]:
+                combos_for_that_row = self.combos_for_row[i_row]
+                combo_for_that_row = combos_for_that_row[self.solution_indices[i_row]]
+                number_on_that_row = combo_for_that_row[i_col]
+                numbers.append(number_on_that_row)
+            numbers.append(combo[i_col])
+            numbers = tuple(numbers)
 
-            if fragment not in possibles:
+            possibles = []
+            for possible_combo in self.combos_for_col[i_col]:
+                possible = tuple([possible_combo[i] for i in row_indices])
+                possibles.append(possible)
+
+            if numbers not in possibles:
                 return False
 
         return True
 
+    def show(self):
+        for i, j in enumerate(self.solution_indices):
+            if j is None:
+                print(i)
+            else:
+                print(f"{i} -> {self.combos_for_row[i][j]}")
+
     def solve(self):
-        n_row = 0
-        while n_row < 6:
+        rotate = self.n_combinations_rows > self.n_combinations_cols
+        print(rotate)
+
+        i_placement = 0
+        while i_placement < 6:
+            i_row = self.placement_to_row[i_placement]
 
             i_start = 0
-            if self.solution_indices[n_row] is not None:
-                i_start = self.solution_indices[n_row] + 1
+            if self.solution_indices[i_row] is not None:
+                i_start = self.solution_indices[i_row] + 1
 
             match_found = False
-            for i in range(i_start, len(self.combos_for_row[n_row])):
-                current_combo = self.combos_for_row[n_row][i]
+            for i in range(i_start, len(self.combos_for_row[i_row])):
+                current_combo = self.combos_for_row[i_row][i]
 
-                if not self.fits_with_previous(n_row, current_combo):
+                if not self.fits_with_previous(i_placement, current_combo):
                     continue
 
-                self.solution_indices[n_row] = i
+                self.solution_indices[i_row] = i
                 match_found = True
                 break
 
             if match_found:  # go to next row
-                n_row += 1
+                i_placement += 1
             else:  # discard this line and go back one row
-                self.solution_indices[n_row] = None
-                n_row -= 1
+                self.solution_indices[i_row] = None
+                i_placement -= 1
 
         return tuple(self.solution)
+
+
+def main():
+    opts = parse_args()
+    clues = CLUES[opts.case]
+    solution = solve_puzzle(clues)
+    for combo in solution:
+        print(combo)
 
 
 if __name__ == "__main__":
