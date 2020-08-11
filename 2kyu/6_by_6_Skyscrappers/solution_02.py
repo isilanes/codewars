@@ -26,8 +26,8 @@ def seen_from_sides(combo):
     return seen_from_left(combo), seen_from_right(combo)
 
 
-def solve_puzzle(clues, rotate=None):
-    return Puzzle(clues).solve(rotate)
+def solve_puzzle(clues):
+    return Puzzle(clues).solve()
 
 
 class Puzzle:
@@ -36,7 +36,8 @@ class Puzzle:
         self.clues = clues
 
         self.all_combos = list(permutations(range(1, 7)))
-        self.solution_indices = [None for _ in range(6)]
+        self.solution_combos = [None for _ in range(11)]
+        self.skipped = [0 for _ in range(11)]
 
         self._row_clues = None
         self._col_clues = None
@@ -123,7 +124,7 @@ class Puzzle:
 
     @property
     def solution(self):
-        return tuple([self.combos_for_row[i][j] for i, j in enumerate(self.solution_indices)])
+        return tuple([self.solution_combos[i] for i in range(0, 11, 2)])
 
     @property
     def n_combinations_rows(self):
@@ -191,16 +192,157 @@ class Puzzle:
     def solve(self):
         i_placement = 0
         while i_placement < 11:
-            combo = self.place_combo(i_placement)
-            print(combo)
+            do_break = self.place_combo(i_placement)
+            if do_break:
+                break
+            if self.solution_combos[i_placement] is None:
+                self.skipped[i_placement] = 0
+                self.skipped[i_placement-1] += 1
+                i_placement -= 1
+                continue
+
+            i_placement += 1
 
         return self.solution
 
     def place_combo(self, i_placement):
         if i_placement == 0:
-            return self.place_first_combo()
+            self.place_first_combo()
 
-        return None
+        elif i_placement == 1:
+            self.place_second_combo()
+
+        elif i_placement == 2:
+            self.place_third_combo()
+
+        elif i_placement == 3:
+            self.place_fourth_combo()
+
+        elif i_placement == 4:
+            self.place_fifth_combo()
+
+        elif i_placement == 5:
+            self.place_sixth_combo()
+
+        elif i_placement == 6:
+            self.place_seventh_combo()
+
+        elif i_placement == 7:
+            self.place_eighth_combo()
+
+        elif i_placement == 8:
+            self.place_ninth_combo()
+
+        elif i_placement == 9:
+            self.place_tenth_combo()
+
+        elif i_placement == 10:
+            self.place_eleventh_combo()
+
+        else:
+            return True
 
     def place_first_combo(self):
-        valid = self.combos_for_row[0]
+        valids = self.combos_for_row[0]
+        if len(valids) > self.skipped[0]:  # although this would mean there is no solution
+            self.solution_combos[0] = valids[self.skipped[0]]
+
+    def place_second_combo(self):
+        v0 = self.solution_combos[0][0]
+        valids = [c for c in self.combos_for_col[0] if c[0] == v0]
+        try:
+            self.solution_combos[1] = valids[self.skipped[1]]
+        except IndexError:
+            self.solution_combos[1] = None
+
+    def place_third_combo(self):
+        v0 = self.solution_combos[1][1]
+        valids = [c for c in self.combos_for_row[1] if c[0] == v0]
+        try:
+            self.solution_combos[2] = valids[self.skipped[2]]
+        except IndexError:
+            self.solution_combos[2] = None
+
+    def place_fourth_combo(self):
+        v0 = self.solution_combos[0][1]
+        v1 = self.solution_combos[2][1]
+        valids = [c for c in self.combos_for_col[1] if c[0] == v0 and c[1] == v1]
+        try:
+            self.solution_combos[3] = valids[self.skipped[3]]
+        except IndexError:
+            self.solution_combos[3] = None
+
+    def place_fifth_combo(self):
+        v0 = self.solution_combos[1][2]
+        v1 = self.solution_combos[3][2]
+        valids = [c for c in self.combos_for_row[2] if c[0] == v0 and c[1] == v1]
+        try:
+            self.solution_combos[4] = valids[self.skipped[4]]
+        except IndexError:
+            self.solution_combos[4] = None
+
+    def place_sixth_combo(self):
+        v0 = self.solution_combos[0][2]
+        v1 = self.solution_combos[2][2]
+        v2 = self.solution_combos[4][2]
+        valids = [c for c in self.combos_for_col[2] if c[0] == v0 and c[1] == v1 and c[2] == v2]
+        try:
+            self.solution_combos[5] = valids[self.skipped[5]]
+        except IndexError:
+            self.solution_combos[5] = None
+
+    def place_seventh_combo(self):
+        v0 = self.solution_combos[1][3]
+        v1 = self.solution_combos[3][3]
+        v2 = self.solution_combos[5][3]
+        valids = [c for c in self.combos_for_row[3] if c[0] == v0 and c[1] == v1 and c[2] == v2]
+        try:
+            self.solution_combos[6] = valids[self.skipped[6]]
+        except IndexError:
+            self.solution_combos[6] = None
+
+    def place_eighth_combo(self):
+        v0 = self.solution_combos[0][3]
+        v1 = self.solution_combos[2][3]
+        v2 = self.solution_combos[4][3]
+        v3 = self.solution_combos[6][3]
+        valids = [c for c in self.combos_for_col[3] if c[0] == v0 and c[1] == v1 and c[2] == v2 and c[3] == v3]
+        try:
+            self.solution_combos[7] = valids[self.skipped[7]]
+        except IndexError:
+            self.solution_combos[7] = None
+
+    def place_ninth_combo(self):
+        v0 = self.solution_combos[1][4]
+        v1 = self.solution_combos[3][4]
+        v2 = self.solution_combos[5][4]
+        v3 = self.solution_combos[7][4]
+        valids = [c for c in self.combos_for_row[4] if c[0] == v0 and c[1] == v1 and c[2] == v2 and c[3] == v3]
+        try:
+            self.solution_combos[8] = valids[self.skipped[8]]
+        except IndexError:
+            self.solution_combos[8] = None
+
+    def place_tenth_combo(self):
+        v0 = self.solution_combos[0][4]
+        v1 = self.solution_combos[2][4]
+        v2 = self.solution_combos[4][4]
+        v3 = self.solution_combos[6][4]
+        v4 = self.solution_combos[8][4]
+        valids = [c for c in self.combos_for_col[4] if c[0] == v0 and c[1] == v1 and c[2] == v2 and c[3] == v3 and c[4] == v4]
+        try:
+            self.solution_combos[9] = valids[self.skipped[9]]
+        except IndexError:
+            self.solution_combos[9] = None
+
+    def place_eleventh_combo(self):
+        v0 = self.solution_combos[1][5]
+        v1 = self.solution_combos[3][5]
+        v2 = self.solution_combos[5][5]
+        v3 = self.solution_combos[7][5]
+        v4 = self.solution_combos[9][5]
+        valids = [c for c in self.combos_for_row[5] if c[0] == v0 and c[1] == v1 and c[2] == v2 and c[3] == v3 and c[4] == v4]
+        try:
+            self.solution_combos[10] = valids[self.skipped[10]]
+        except IndexError:
+            self.solution_combos[10] = None

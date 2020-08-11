@@ -51,13 +51,7 @@ def main():
     opts = parse_args()
     clues = CLUES[opts.case]
 
-    rotate = None
-    if opts.rotate:
-        rotate = True
-    elif opts.no_rotate:
-        rotate = False
-
-    solution = solve_puzzle(clues, rotate=rotate)
+    solution = solve_puzzle(clues)
     for combo in solution:
         print(combo)
 
