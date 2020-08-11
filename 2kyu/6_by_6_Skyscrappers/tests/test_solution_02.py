@@ -39,7 +39,6 @@ class TestFunctions(unittest.TestCase):
         )
         self.assertEqual(solve_puzzle(clues), expected)
 
-    @unittest.skip("Slow")
     def test_case_2(self):
         clues = (0, 0, 0, 2, 2, 0,
                  0, 0, 0, 6, 3, 0,
@@ -55,7 +54,6 @@ class TestFunctions(unittest.TestCase):
 
         self.assertEqual(solve_puzzle(clues), expected)
 
-    @unittest.skip("Slow")
     def test_case_3(self):
         clues = (0, 3, 0, 5, 3, 4,
                  0, 0, 0, 0, 0, 1,
