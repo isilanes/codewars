@@ -1,6 +1,6 @@
 import unittest
 
-from six_by_six_skyscrappers import seen_from_left, seen_from_right, solve_puzzle
+from solution_01 import seen_from_left, seen_from_right, solve_puzzle
 
 
 class TestFunctions(unittest.TestCase):
@@ -54,6 +54,7 @@ class TestFunctions(unittest.TestCase):
 
         self.assertEqual(solve_puzzle(clues), expected)
 
+    @unittest.skip("Slow")
     def test_case_3(self):
         clues = (0, 3, 0, 5, 3, 4,
                  0, 0, 0, 0, 0, 1,
