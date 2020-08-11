@@ -68,3 +68,15 @@ class TestFunctions(unittest.TestCase):
                     (1, 5, 4, 3, 2, 6))
 
         self.assertEqual(solve_puzzle(clues), expected)
+
+    def test_case_random_1(self):
+        clues = (3, 2, 1, 2, 2, 4, 3, 2, 2, 3, 2, 1, 1, 2, 3, 3, 2, 2, 5, 1, 2, 2, 4, 3)
+        expected = (
+            (3, 5, 6, 4, 1, 2),
+            (2, 4, 5, 3, 6, 1),
+            (5, 1, 2, 6, 3, 4),
+            (4, 6, 1, 5, 2, 3),
+            (6, 2, 3, 1, 4, 5),
+            (1, 3, 4, 2, 5, 6)
+        )
+        self.assertEqual(solve_puzzle(clues), expected)

@@ -39,7 +39,9 @@ class Puzzle:
         self.all_combos = list(permutations(range(1, 7)))
         self.solution_rows = [None for _ in range(6)]
         self.solution_cols = [None for _ in range(6)]
-        self.skipped = [0 for _ in range(11)]
+        self.skipped = [0 for _ in range(12)]
+        self.valids_for_row = [None for _ in range(6)]
+        self.valids_for_col = [None for _ in range(6)]
 
         self._row_clues = None
         self._col_clues = None
@@ -153,7 +155,7 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 11:
+        while i_placement < 12:
             combo = self.place_combo(i_placement)
             if combo is None:
                 self.skipped[i_placement] = 0
@@ -199,100 +201,133 @@ class Puzzle:
         elif i_placement == 10:
             return self.place_eleventh_combo()
 
+        elif i_placement == 11:
+            return self.check_twelfth_combo()
+
     def place_first_combo(self) -> Union[list, None]:
         i_row = self.sorted_rows[0]
-        valids = self.combos_for_row[i_row]
+
+        if self.skipped[0] == 0:
+            self.valids_for_row[i_row] = self.combos_for_row[i_row]
 
         # This should always work, unless there is no solution:
-        self.solution_rows[i_row] = valids[self.skipped[0]]
-        return self.solution_rows[i_row]
+        proposed_combo = self.valids_for_row[i_row][self.skipped[0]]
+        self.solution_rows[i_row] = proposed_combo
+
+        return proposed_combo
 
     def place_second_combo(self) -> Union[list, None]:
         i_col = self.sorted_cols[0]
+
         i_row = self.sorted_rows[0]
         v0 = self.solution_rows[i_row][i_col]
-        valids = [c for c in self.combos_for_col[i_col] if c[i_row] == v0]
+        if self.skipped[1] == 0:
+            self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i_row] == v0]
 
         try:
-            self.solution_cols[i_col] = valids[self.skipped[1]]
-            return self.solution_cols[i_col]
+            proposed_combo = self.valids_for_col[i_col][self.skipped[1]]
+            self.solution_cols[i_col] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
 
     def place_third_combo(self) -> Union[list, None]:
         i_row = self.sorted_rows[1]
+
         i0 = self.sorted_cols[0]
         v0 = self.solution_cols[i0][i_row]
-        valids = [c for c in self.combos_for_row[i_row] if c[i0] == v0]
+        if self.skipped[2] == 0:
+            self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0]
 
         try:
-            self.solution_rows[i_row] = valids[self.skipped[2]]
-            return self.solution_rows[i_row]
+            proposed_combo = self.valids_for_row[i_row][self.skipped[2]]
+            self.solution_rows[i_row] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
 
     def place_fourth_combo(self) -> Union[list, None]:
         i_col = self.sorted_cols[1]
+
         i0 = self.sorted_rows[0]
         i1 = self.sorted_rows[1]
         v0 = self.solution_rows[i0][i_col]
         v1 = self.solution_rows[i1][i_col]
-        valids = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1]
+        if self.skipped[3] == 0:
+            self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1]
 
         try:
-            self.solution_cols[i_col] = valids[self.skipped[3]]
-            return self.solution_cols[i_col]
+            proposed_combo = self.valids_for_col[i_col][self.skipped[3]]
+            self.solution_cols[i_col] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
 
     def place_fifth_combo(self) -> Union[list, None]:
         i_row = self.sorted_rows[2]
+
         i0 = self.sorted_cols[0]
         i1 = self.sorted_cols[1]
         v0 = self.solution_cols[i0][i_row]
         v1 = self.solution_cols[i1][i_row]
-        valids = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1]
+        if self.skipped[4] == 0:
+            self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1]
 
         try:
-            self.solution_rows[i_row] = valids[self.skipped[4]]
-            return self.solution_rows[i_row]
+            proposed_combo = self.valids_for_row[i_row][self.skipped[4]]
+            self.solution_rows[i_row] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
 
     def place_sixth_combo(self) -> Union[list, None]:
         i_col = self.sorted_cols[2]
+
         i0 = self.sorted_rows[0]
         i1 = self.sorted_rows[1]
         i2 = self.sorted_rows[2]
         v0 = self.solution_rows[i0][i_col]
         v1 = self.solution_rows[i1][i_col]
         v2 = self.solution_rows[i2][i_col]
-        valids = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2]
+        if self.skipped[5] == 0:
+            self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2]  # NOQA
 
         try:
-            self.solution_cols[i_col] = valids[self.skipped[5]]
-            return self.solution_cols[i_col]
+            proposed_combo = self.valids_for_col[i_col][self.skipped[5]]
+            self.solution_cols[i_col] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
 
     def place_seventh_combo(self) -> Union[list, None]:
         i_row = self.sorted_rows[3]
+
         i0 = self.sorted_cols[0]
         i1 = self.sorted_cols[1]
         i2 = self.sorted_cols[2]
         v0 = self.solution_cols[i0][i_row]
         v1 = self.solution_cols[i1][i_row]
         v2 = self.solution_cols[i2][i_row]
-        valids = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2]
+
+        if self.skipped[6] == 0:
+            self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2]
 
         try:
-            self.solution_rows[i_row] = valids[self.skipped[6]]
-            return self.solution_rows[i_row]
+            proposed_combo = self.valids_for_row[i_row][self.skipped[6]]
+            self.solution_rows[i_row] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
 
     def place_eighth_combo(self) -> Union[list, None]:
         i_col = self.sorted_cols[3]
+
         i0 = self.sorted_rows[0]
         i1 = self.sorted_rows[1]
         i2 = self.sorted_rows[2]
@@ -301,16 +336,21 @@ class Puzzle:
         v1 = self.solution_rows[i1][i_col]
         v2 = self.solution_rows[i2][i_col]
         v3 = self.solution_rows[i3][i_col]
-        valids = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3]  # NOQA
+
+        if self.skipped[7] == 0:
+            self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3]  # NOQA
 
         try:
-            self.solution_cols[i_col] = valids[self.skipped[7]]
-            return self.solution_cols[i_col]
+            proposed_combo = self.valids_for_col[i_col][self.skipped[7]]
+            self.solution_cols[i_col] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
 
     def place_ninth_combo(self) -> Union[list, None]:
         i_row = self.sorted_rows[4]
+
         i0 = self.sorted_cols[0]
         i1 = self.sorted_cols[1]
         i2 = self.sorted_cols[2]
@@ -319,16 +359,21 @@ class Puzzle:
         v1 = self.solution_cols[i1][i_row]
         v2 = self.solution_cols[i2][i_row]
         v3 = self.solution_cols[i3][i_row]
-        valids = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3]
+
+        if self.skipped[8] == 0:
+            self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3]
 
         try:
-            self.solution_rows[i_row] = valids[self.skipped[8]]
-            return self.solution_rows[i_row]
+            proposed_combo = self.valids_for_row[i_row][self.skipped[8]]
+            self.solution_rows[i_row] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
 
     def place_tenth_combo(self) -> Union[list, None]:
         i_col = self.sorted_cols[4]
+
         i0 = self.sorted_rows[0]
         i1 = self.sorted_rows[1]
         i2 = self.sorted_rows[2]
@@ -339,16 +384,21 @@ class Puzzle:
         v2 = self.solution_rows[i2][i_col]
         v3 = self.solution_rows[i3][i_col]
         v4 = self.solution_rows[i4][i_col]
-        valids = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3 and c[i4] == v4]  # NOQA
+
+        if self.skipped[9] == 0:
+            self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3 and c[i4] == v4]  # NOQA
 
         try:
-            self.solution_cols[i_col] = valids[self.skipped[9]]
-            return self.solution_cols[i_col]
+            proposed_combo = self.valids_for_col[i_col][self.skipped[9]]
+            self.solution_cols[i_col] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
 
     def place_eleventh_combo(self) -> Union[list, None]:
         i_row = self.sorted_rows[5]
+
         i0 = self.sorted_cols[0]
         i1 = self.sorted_cols[1]
         i2 = self.sorted_cols[2]
@@ -359,10 +409,37 @@ class Puzzle:
         v2 = self.solution_cols[i2][i_row]
         v3 = self.solution_cols[i3][i_row]
         v4 = self.solution_cols[i4][i_row]
-        valids = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3 and c[i4] == v4]  # NOQA
+
+        if self.skipped[10] == 0:
+            self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3 and c[i4] == v4]  # NOQA
 
         try:
-            self.solution_rows[i_row] = valids[self.skipped[10]]
-            return self.solution_rows[i_row]
+            proposed_combo = self.valids_for_row[i_row][self.skipped[10]]
+            self.solution_rows[i_row] = proposed_combo
+
+            return proposed_combo
         except IndexError:
             return None
+
+    def check_twelfth_combo(self) -> Union[list, None]:
+        i_col = self.sorted_cols[5]
+        i0 = self.sorted_rows[0]
+        i1 = self.sorted_rows[1]
+        i2 = self.sorted_rows[2]
+        i3 = self.sorted_rows[3]
+        i4 = self.sorted_rows[4]
+        i5 = self.sorted_rows[5]
+
+        combo_must_be = [None for _ in range(6)]
+        combo_must_be[i0] = self.solution_rows[i0][i_col]
+        combo_must_be[i1] = self.solution_rows[i1][i_col]
+        combo_must_be[i2] = self.solution_rows[i2][i_col]
+        combo_must_be[i3] = self.solution_rows[i3][i_col]
+        combo_must_be[i4] = self.solution_rows[i4][i_col]
+        combo_must_be[i5] = self.solution_rows[i5][i_col]
+        combo_must_be = tuple(combo_must_be)
+
+        if combo_must_be in self.combos_for_col[i_col]:
+            return combo_must_be
+
+        return None
