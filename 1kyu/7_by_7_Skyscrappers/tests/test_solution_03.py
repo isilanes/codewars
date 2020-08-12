@@ -1,6 +1,6 @@
 import unittest
 
-from solution_02 import seen_from_left, seen_from_right, solve_puzzle
+from solution_03 import seen_from_left, seen_from_right, solve_puzzle
 
 
 class TestFunctions(unittest.TestCase):

@@ -97,7 +97,7 @@ class Puzzle:
 
     @property
     def solution(self) -> tuple:
-        s = [None for _ in range(N_ELEMENTS)]
+        s = [None for _ in range(6)]
         for p in range(0, 2 * N_ELEMENTS, 2):
             i_row = self.position_to_row_or_col[p]
             if i_row is not None:
@@ -408,8 +408,8 @@ class Puzzle:
             if not success:
                 return None
 
-            if n == 2 * N_ELEMENTS - 1:  # and success
-                return []  # whatever that is not None (and is a list, to follow type hint)
-
-        return self.set_combo(n)
+        if n < 11:
+            return self.set_combo(n)
+        else:
+            return []  # whatever that is not None (and is a list, to follow type hint)
 
