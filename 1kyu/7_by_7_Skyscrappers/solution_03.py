@@ -4,7 +4,7 @@ from typing import Union
 from itertools import permutations
 
 
-N_ELEMENTS = 6
+N_ELEMENTS = 7
 
 
 def seen_from_left(combo):
@@ -97,7 +97,7 @@ class Puzzle:
 
     @property
     def solution(self) -> tuple:
-        s = [None for _ in range(6)]
+        s = [None for _ in range(N_ELEMENTS)]
         for p in range(0, 2 * N_ELEMENTS, 2):
             i_row = self.position_to_row_or_col[p]
             if i_row is not None:
@@ -132,7 +132,7 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 12:
+        while i_placement < 4:
             combo = self.place_nth_combo(i_placement)
             if combo is None:
                 self.skipped_for_position[i_placement] = 0
@@ -408,8 +408,8 @@ class Puzzle:
             if not success:
                 return None
 
-        if n < 11:
-            return self.set_combo(n)
-        else:
-            return []  # whatever that is not None (and is a list, to follow type hint)
+            if n == 2 * N_ELEMENTS - 1:  # and success
+                return []  # whatever that is not None (and is a list, to follow type hint)
+
+        return self.set_combo(n)
 
