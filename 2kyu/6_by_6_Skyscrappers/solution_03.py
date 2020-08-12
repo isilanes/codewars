@@ -96,22 +96,6 @@ class Puzzle:
         return self._combos_for_col
 
     @property
-    def sorted_rows(self) -> list:
-        if self._sorted_rows is None:
-            dsu = [(len(self.combos_for_row[i]), i) for i in range(6)]
-            self._sorted_rows = [i for _, i in sorted(dsu)]
-
-        return self._sorted_rows
-
-    @property
-    def sorted_cols(self) -> list:
-        if self._sorted_cols is None:
-            dsu = [(len(self.combos_for_col[i]), i) for i in range(6)]
-            self._sorted_cols = [i for _, i in sorted(dsu)]
-
-        return self._sorted_cols
-
-    @property
     def solution(self) -> tuple:
         s = [None for _ in range(6)]
         for p in range(0, 2 * N_ELEMENTS, 2):
@@ -119,7 +103,7 @@ class Puzzle:
             if i_row is not None:
                 s[i_row] = self.combo_for_position[p]
 
-        return s
+        return tuple(s)
 
     def fits_in_row(self, i_row, combo) -> bool:
         left_clue, right_clue = self.row_clues[i_row]
@@ -148,8 +132,8 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 11:
-            combo = self.place_combo(i_placement)
+        while i_placement < 12:
+            combo = self.place_nth_combo(i_placement)
             if combo is None:
                 self.skipped_for_position[i_placement] = 0
                 self.valids_for_position[i_placement] = None
@@ -162,7 +146,7 @@ class Puzzle:
 
         return self.solution
 
-    def calc_valids_for_first_row(self):
+    def calc_valids_for_first_row(self) -> bool:
         min_index, min_valids, min_n_valids = -1, [], None
         for i, combos in enumerate(self.combos_for_row):
             n_valids = len(combos)
@@ -171,6 +155,8 @@ class Puzzle:
 
         self.valids_for_position[0] = self.combos_for_row[min_index]
         self.position_to_row_or_col[0] = min_index
+
+        return True
 
     def calc_valids_for_first_col(self) -> bool:
         i0 = self.position_to_row_or_col[0]
@@ -380,6 +366,19 @@ class Puzzle:
 
         return True
 
+    def check_sixth_col(self) -> bool:
+        already_placed_cols = self.position_to_row_or_col[1:10:2]
+        missing_col = 15 - sum(already_placed_cols)  # 15 = 0 + 1 + 2 + 3 + 4 + 5
+
+        combo_must_be = [None for _ in range(N_ELEMENTS)]
+        for i, ix in enumerate(self.position_to_row_or_col[:11:2]):  # 0, 2, 4, 6, 8, 10 (all rows)
+            combo_must_be[ix] = self.combo_for_position[2*i][missing_col]
+
+        combo_must_be = tuple(combo_must_be)
+
+        if combo_must_be in self.combos_for_col[missing_col]:
+            return True
+
     def set_combo(self, i) -> Union[list, None]:
         try:
             proposed_combo = self.valids_for_position[i][self.skipped_for_position[i]]
@@ -389,308 +388,28 @@ class Puzzle:
         except IndexError:
             return None
 
-    def place_combo(self, i_placement: int) -> Union[list, None]:
-        if i_placement == 0:
-            return self.place_first_row()
-
-        elif i_placement == 1:
-            return self.place_first_col()
-
-        elif i_placement == 2:
-            return self.place_second_row()
-
-        elif i_placement == 3:
-            return self.place_second_col()
-
-        elif i_placement == 4:
-            return self.place_third_row()
-
-        elif i_placement == 5:
-            return self.place_third_col()
-
-        elif i_placement == 6:
-            return self.place_fourth_row()
-
-        elif i_placement == 7:
-            return self.place_fourth_col()
-
-        elif i_placement == 8:
-            return self.place_fifth_row()
-
-        elif i_placement == 9:
-            return self.place_nth_combo(9)
-
-        elif i_placement == 10:
-            return self.place_nth_combo(10)
-
-        elif i_placement == 11:
-            return self.check_twelfth_combo()
-
-    def place_first_row(self) -> Union[list, None]:
-        buena = (2, 1, 4, 3, 5, 6)
-        self.combo_for_position[0] = buena
-        self.position_to_row_or_col[0] = 0
-        print(f"row {self.position_to_row_or_col[0]} = {buena}")
-        return buena
-
-        if self.valids_for_position[0] is None:
-            self.calc_valids_for_first_row()
-
-        # This should always work, unless there is no solution:
-        proposed_combo = self.valids_for_position[0][self.skipped_for_position[0]]
-        self.combo_for_position[0] = proposed_combo
-        print(f"row {self.position_to_row_or_col[0]} = {proposed_combo}")
-
-        return proposed_combo
-
-    def place_first_col(self) -> Union[list, None]:
-        buena = (1, 6, 3, 5, 4, 2)
-        self.combo_for_position[1] = buena
-        self.position_to_row_or_col[1] = 1
-        print(f"col {self.position_to_row_or_col[1]} = {buena}")
-        return buena
-
-        if self.valids_for_position[1] is None:
-            success = self.calc_valids_for_first_col()
-            if not success:
-                return None
-
-        try:
-            proposed_combo = self.valids_for_position[1][self.skipped_for_position[1]]
-            self.combo_for_position[1] = proposed_combo
-            print(f"col {self.position_to_row_or_col[1]} = {proposed_combo}")
-
-            return proposed_combo
-        except IndexError:
-            return None
-
-    def place_second_row(self) -> Union[list, None]:
-        buena = (6, 5, 2, 1, 3, 4)
-        self.combo_for_position[2] = buena
-        self.position_to_row_or_col[2] = 3
-        print(f"row {self.position_to_row_or_col[2]} = {buena}")
-        return buena
-
-        if self.valids_for_position[2] is None:
-            success = self.calc_valids_for_second_row()
-            if not success:
-                return None
-
-        print(self.position_to_row_or_col[2])
-        print(buena in self.valids_for_position[2])
-        exit()
-
-        try:
-            proposed_combo = self.valids_for_position[2][self.skipped_for_position[2]]
-            self.combo_for_position[2] = proposed_combo
-            print(f"row {self.position_to_row_or_col[2]} = {proposed_combo}")
-
-            return proposed_combo
-        except IndexError:
-            return None
-
-    def place_second_col(self) -> Union[list, None]:
-        buena = (4, 3, 6, 2, 1, 5)
-        self.combo_for_position[3] = buena
-        self.position_to_row_or_col[3] = 2
-        print(f"col {self.position_to_row_or_col[3]} = {buena}")
-        return buena
-
-        if self.valids_for_position[3] is None:
-            success = self.calc_valids_for_second_col()
-            if not success:
-                return None
-
-        print(self.position_to_row_or_col[3])
-        print(buena in self.valids_for_position[3])
-        exit()
-
-        try:
-            proposed_combo = self.valids_for_position[3][self.skipped_for_position[3]]
-            self.combo_for_position[3] = proposed_combo
-            print(f"col {self.position_to_row_or_col[3]} = {proposed_combo}")
-
-            return proposed_combo
-        except IndexError:
-            return None
-
-    def place_third_row(self) -> Union[list, None]:
-        buena = (5, 4, 1, 6, 2, 3)
-        self.combo_for_position[4] = buena
-        self.position_to_row_or_col[4] = 4
-        print(f"row {self.position_to_row_or_col[4]} = {buena}")
-        return buena
-
-        if self.valids_for_position[4] is None:
-            success = self.calc_valids_for_third_row()
-            if not success:
-                return None
-
-        print(self.position_to_row_or_col[4])
-        print(buena in self.valids_for_position[4])
-        exit()
-
-        try:
-            proposed_combo = self.valids_for_position[4][self.skipped_for_position[4]]
-            self.combo_for_position[4] = proposed_combo
-            print(f"row {self.position_to_row_or_col[4]} = {proposed_combo}")
-
-            return proposed_combo
-        except IndexError:
-            return None
-
-    def place_third_col(self) -> Union[list, None]:
-        buena = (5, 4, 1, 3, 2, 6)
-        self.combo_for_position[5] = buena
-        self.position_to_row_or_col[5] = 4
-        print(f"col {self.position_to_row_or_col[5]} = {buena}")
-        return buena
-
-        if self.valids_for_position[5] is None:
-            success = self.calc_valids_for_third_col()
-            if not success:
-                return None
-
-        print(self.position_to_row_or_col[5])
-        print(buena in self.valids_for_position[5])
-        exit()
-
-        try:
-            proposed_combo = self.valids_for_position[5][self.skipped_for_position[5]]
-            self.combo_for_position[5] = proposed_combo
-            print(f"col {self.position_to_row_or_col[5]} = {proposed_combo}")
-
-            return proposed_combo
-        except IndexError:
-            return None
-
-    def place_fourth_row(self) -> Union[list, None]:
-        buena = (1, 6, 3, 2, 4, 5)
-        self.combo_for_position[6] = buena
-        self.position_to_row_or_col[6] = 1
-        print(f"row {self.position_to_row_or_col[6]} = {buena}")
-        return buena
-
-        if self.valids_for_position[6] is None:
-            success = self.calc_valids_for_fourth_row()
-            if not success:
-                return None
-
-        print(self.position_to_row_or_col[6])
-        print(buena in self.valids_for_position[6])
-        exit()
-
-        try:
-            proposed_combo = self.valids_for_position[6][self.skipped_for_position[6]]
-            self.combo_for_position[6] = proposed_combo
-            print(f"row {self.position_to_row_or_col[6]} = {proposed_combo}")
-
-            return proposed_combo
-        except IndexError:
-            return None
-
-    def place_fourth_col(self) -> Union[list, None]:
-        buena = (2, 1, 4, 6, 5, 3)
-        self.combo_for_position[7] = buena
-        self.position_to_row_or_col[7] = 0
-        print(f"col {self.position_to_row_or_col[7]} = {buena}")
-        return buena
-
-        if self.valids_for_position[7] is None:
-            success = self.calc_valids_for_fourth_col()
-            if not success:
-                return None
-
-        print(self.position_to_row_or_col[7])
-        print(buena in self.valids_for_position[7])
-        exit()
-
-        try:
-            proposed_combo = self.valids_for_position[7][self.skipped_for_position[7]]
-            self.combo_for_position[7] = proposed_combo
-
-            return proposed_combo
-        except IndexError:
-            return None
-
-    def place_fifth_row(self) -> Union[list, None]:
-        buena = (4, 3, 6, 5, 1, 2)
-        self.combo_for_position[8] = buena
-        self.position_to_row_or_col[8] = 2
-        print(f"row {self.position_to_row_or_col[8]} = {buena}")
-        return buena
-
-        if self.valids_for_position[8] is None:
-            success = self.calc_valids_for_fifth_row()
-            if not success:
-                return None
-
-        print(self.position_to_row_or_col[8])
-        print(buena in self.valids_for_position[8])
-        exit()
-
-        return self.set_combo(8)
-
-    def place_nth_combo(self, n) -> Union[list, None]:
-        if n == 9:
-            buena = (3, 2, 5, 1, 6, 4)
-            self.combo_for_position[n] = buena
-            self.position_to_row_or_col[n] = 3
-            print(f"col {self.position_to_row_or_col[n]} = {buena}")
-            return buena
-
-        if n == 10:
-            buena = (3, 2, 5, 4, 6, 1)
-            self.combo_for_position[n] = buena
-            self.position_to_row_or_col[n] = 5
-            print(f"row {self.position_to_row_or_col[n]} = {buena}")
-            return buena
-
+    def place_nth_combo(self, n: int) -> Union[list, None]:
         if self.position_to_row_or_col[n] is None:
             calcs = (
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
+                self.calc_valids_for_first_row,
+                self.calc_valids_for_first_col,
+                self.calc_valids_for_second_row,
+                self.calc_valids_for_second_col,
+                self.calc_valids_for_third_row,
+                self.calc_valids_for_third_col,
+                self.calc_valids_for_fourth_row,
+                self.calc_valids_for_fourth_col,
+                self.calc_valids_for_fifth_row,
                 self.calc_valids_for_fifth_col,
                 self.calc_valids_for_sixth_row,
+                self.check_sixth_col,
             )
             success = calcs[n]()
             if not success:
                 return None
 
-        if n == 10:
-            buena = (3, 2, 5, 4, 6, 1)
-            print(self.position_to_row_or_col[n])
-            print(buena in self.valids_for_position[n])
-            exit()
+        if n < 11:
+            return self.set_combo(n)
+        else:
+            return []  # whatever that is not None (and is a list, to follow type hint)
 
-        return self.set_combo(n)
-
-    def check_twelfth_combo(self) -> Union[list, None]:
-        i_col = self.sorted_cols[5]
-        i0 = self.sorted_rows[0]
-        i1 = self.sorted_rows[1]
-        i2 = self.sorted_rows[2]
-        i3 = self.sorted_rows[3]
-        i4 = self.sorted_rows[4]
-        i5 = self.sorted_rows[5]
-
-        combo_must_be = [None for _ in range(6)]
-        combo_must_be[i0] = self.solution_rows[i0][i_col]
-        combo_must_be[i1] = self.solution_rows[i1][i_col]
-        combo_must_be[i2] = self.solution_rows[i2][i_col]
-        combo_must_be[i3] = self.solution_rows[i3][i_col]
-        combo_must_be[i4] = self.solution_rows[i4][i_col]
-        combo_must_be[i5] = self.solution_rows[i5][i_col]
-        combo_must_be = tuple(combo_must_be)
-
-        if combo_must_be in self.combos_for_col[i_col]:
-            return combo_must_be
-
-        return None
