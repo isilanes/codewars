@@ -40,11 +40,15 @@ class Puzzle:
         self.clues = clues
 
         self.all_combos = list(permutations(range(1, N_ELEMENTS+1)))
-        self.solution_rows = [None for _ in range(N_ELEMENTS)]
-        self.solution_cols = [None for _ in range(N_ELEMENTS)]
-        self.skipped = [0 for _ in range(2*N_ELEMENTS)]
-        self.valids_for_row = [None for _ in range(N_ELEMENTS)]
-        self.valids_for_col = [None for _ in range(N_ELEMENTS)]
+        #self.valids_for_row = [None for _ in range(N_ELEMENTS)]
+        #self.valids_for_col = [None for _ in range(N_ELEMENTS)]
+
+        self.skipped_for_position = [0 for _ in range(2 * N_ELEMENTS)]
+        #self.solution_rows = [None for _ in range(N_ELEMENTS)]
+        #self.solution_cols = [None for _ in range(N_ELEMENTS)]
+        self.valids_for_position = [None for _ in range(2 * N_ELEMENTS)]
+        self.combo_for_position = [None for _ in range(2 * N_ELEMENTS)]
+        self.position_to_row_or_col = [None for _ in range(2 * N_ELEMENTS)]
 
         self._row_clues = None
         self._col_clues = None
@@ -57,28 +61,14 @@ class Puzzle:
     @property
     def row_clues(self):
         if self._row_clues is None:
-            self._row_clues = [
-                (self.clues[23], self.clues[6]),
-                (self.clues[22], self.clues[7]),
-                (self.clues[21], self.clues[8]),
-                (self.clues[20], self.clues[9]),
-                (self.clues[19], self.clues[10]),
-                (self.clues[18], self.clues[11]),
-            ]
+            self._row_clues = [(self.clues[4*N_ELEMENTS - 1 - i], self.clues[N_ELEMENTS + i]) for i in range(N_ELEMENTS)]
 
         return self._row_clues
 
     @property
     def col_clues(self):
         if self._col_clues is None:
-            self._col_clues = [
-                (self.clues[0], self.clues[17]),
-                (self.clues[1], self.clues[16]),
-                (self.clues[2], self.clues[15]),
-                (self.clues[3], self.clues[14]),
-                (self.clues[4], self.clues[13]),
-                (self.clues[5], self.clues[12]),
-            ]
+            self._col_clues = [(self.clues[i], self.clues[3*N_ELEMENTS - 1 - i]) for i in range(N_ELEMENTS)]
 
         return self._col_clues
 
@@ -94,8 +84,10 @@ class Puzzle:
     @property
     def combos_for_row(self):
         if self._combos_for_row is None:
+            print("DEBUG87")
             self._combos_for_row = []
-            for i_row in range(6):
+            for i_row in range(N_ELEMENTS):
+                print(i_row, len(self.all_combos))
                 valid_combos = [c for c in self.all_combos if self.fits_in_row(i_row, c)]
                 self._combos_for_row.append(valid_combos)
 
@@ -105,7 +97,7 @@ class Puzzle:
     def combos_for_col(self):
         if self._combos_for_col is None:
             self._combos_for_col = []
-            for i_col in range(6):
+            for i_col in range(N_ELEMENTS):
                 valid_combos = [c for c in self.all_combos if self.fits_in_col(i_col, c)]
                 self._combos_for_col.append(valid_combos)
 
@@ -134,6 +126,8 @@ class Puzzle:
     def fits_in_row(self, i_row, combo) -> bool:
         left_clue, right_clue = self.row_clues[i_row]
         left_seen, right_seen = self.seen_from_sides[combo]
+        print("DEBUG129", left_clue, right_clue)
+        exit()
 
         if left_clue != 0 and left_clue != left_seen:
             return False
@@ -158,11 +152,11 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 12:
+        while i_placement < 1:
             combo = self.place_combo(i_placement)
             if combo is None:
-                self.skipped[i_placement] = 0
-                self.skipped[i_placement-1] += 1
+                self.skipped_for_position[i_placement] = 0
+                self.skipped_for_position[i_placement - 1] += 1
                 i_placement -= 1
                 continue
 
@@ -208,14 +202,25 @@ class Puzzle:
             return self.check_twelfth_combo()
 
     def place_first_combo(self) -> Union[list, None]:
-        i_row = self.sorted_rows[0]
+        print("DEBUG201", self.valids_for_position)
+        if self.valids_for_position[0] is None:
+            min_row = -1
+            min_valids = None
+            for i_row, combos in enumerate(self.combos_for_row):
+                print(i_row, combos)
+                n_valids = len(combos)
+                if min_valids is None or n_valids < min_valids:
+                    min_valids = n_valids
+                    min_row = i_row
 
-        if self.skipped[0] == 0:
-            self.valids_for_row[i_row] = self.combos_for_row[i_row]
+            self.valids_for_position[0] = self.combos_for_row[min_row]
+
+        print("DEBUG2313", self.valids_for_position[0])
 
         # This should always work, unless there is no solution:
-        proposed_combo = self.valids_for_row[i_row][self.skipped[0]]
-        self.solution_rows[i_row] = proposed_combo
+        proposed_combo = self.valids_for_position[0][self.skipped_for_position[0]]
+        self.position_to_row_or_col[0] = min_row
+        self.combo_for_position[0] = proposed_combo
 
         return proposed_combo
 
@@ -224,11 +229,11 @@ class Puzzle:
 
         i_row = self.sorted_rows[0]
         v0 = self.solution_rows[i_row][i_col]
-        if self.skipped[1] == 0:
+        if self.skipped_for_position[1] == 0:
             self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i_row] == v0]
 
         try:
-            proposed_combo = self.valids_for_col[i_col][self.skipped[1]]
+            proposed_combo = self.valids_for_col[i_col][self.skipped_for_position[1]]
             self.solution_cols[i_col] = proposed_combo
 
             return proposed_combo
@@ -240,11 +245,11 @@ class Puzzle:
 
         i0 = self.sorted_cols[0]
         v0 = self.solution_cols[i0][i_row]
-        if self.skipped[2] == 0:
+        if self.skipped_for_position[2] == 0:
             self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0]
 
         try:
-            proposed_combo = self.valids_for_row[i_row][self.skipped[2]]
+            proposed_combo = self.valids_for_row[i_row][self.skipped_for_position[2]]
             self.solution_rows[i_row] = proposed_combo
 
             return proposed_combo
@@ -258,11 +263,11 @@ class Puzzle:
         i1 = self.sorted_rows[1]
         v0 = self.solution_rows[i0][i_col]
         v1 = self.solution_rows[i1][i_col]
-        if self.skipped[3] == 0:
+        if self.skipped_for_position[3] == 0:
             self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1]
 
         try:
-            proposed_combo = self.valids_for_col[i_col][self.skipped[3]]
+            proposed_combo = self.valids_for_col[i_col][self.skipped_for_position[3]]
             self.solution_cols[i_col] = proposed_combo
 
             return proposed_combo
@@ -276,11 +281,11 @@ class Puzzle:
         i1 = self.sorted_cols[1]
         v0 = self.solution_cols[i0][i_row]
         v1 = self.solution_cols[i1][i_row]
-        if self.skipped[4] == 0:
+        if self.skipped_for_position[4] == 0:
             self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1]
 
         try:
-            proposed_combo = self.valids_for_row[i_row][self.skipped[4]]
+            proposed_combo = self.valids_for_row[i_row][self.skipped_for_position[4]]
             self.solution_rows[i_row] = proposed_combo
 
             return proposed_combo
@@ -296,11 +301,11 @@ class Puzzle:
         v0 = self.solution_rows[i0][i_col]
         v1 = self.solution_rows[i1][i_col]
         v2 = self.solution_rows[i2][i_col]
-        if self.skipped[5] == 0:
+        if self.skipped_for_position[5] == 0:
             self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2]  # NOQA
 
         try:
-            proposed_combo = self.valids_for_col[i_col][self.skipped[5]]
+            proposed_combo = self.valids_for_col[i_col][self.skipped_for_position[5]]
             self.solution_cols[i_col] = proposed_combo
 
             return proposed_combo
@@ -317,11 +322,11 @@ class Puzzle:
         v1 = self.solution_cols[i1][i_row]
         v2 = self.solution_cols[i2][i_row]
 
-        if self.skipped[6] == 0:
+        if self.skipped_for_position[6] == 0:
             self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2]
 
         try:
-            proposed_combo = self.valids_for_row[i_row][self.skipped[6]]
+            proposed_combo = self.valids_for_row[i_row][self.skipped_for_position[6]]
             self.solution_rows[i_row] = proposed_combo
 
             return proposed_combo
@@ -340,11 +345,11 @@ class Puzzle:
         v2 = self.solution_rows[i2][i_col]
         v3 = self.solution_rows[i3][i_col]
 
-        if self.skipped[7] == 0:
+        if self.skipped_for_position[7] == 0:
             self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3]  # NOQA
 
         try:
-            proposed_combo = self.valids_for_col[i_col][self.skipped[7]]
+            proposed_combo = self.valids_for_col[i_col][self.skipped_for_position[7]]
             self.solution_cols[i_col] = proposed_combo
 
             return proposed_combo
@@ -363,11 +368,11 @@ class Puzzle:
         v2 = self.solution_cols[i2][i_row]
         v3 = self.solution_cols[i3][i_row]
 
-        if self.skipped[8] == 0:
+        if self.skipped_for_position[8] == 0:
             self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3]
 
         try:
-            proposed_combo = self.valids_for_row[i_row][self.skipped[8]]
+            proposed_combo = self.valids_for_row[i_row][self.skipped_for_position[8]]
             self.solution_rows[i_row] = proposed_combo
 
             return proposed_combo
@@ -388,11 +393,11 @@ class Puzzle:
         v3 = self.solution_rows[i3][i_col]
         v4 = self.solution_rows[i4][i_col]
 
-        if self.skipped[9] == 0:
+        if self.skipped_for_position[9] == 0:
             self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3 and c[i4] == v4]  # NOQA
 
         try:
-            proposed_combo = self.valids_for_col[i_col][self.skipped[9]]
+            proposed_combo = self.valids_for_col[i_col][self.skipped_for_position[9]]
             self.solution_cols[i_col] = proposed_combo
 
             return proposed_combo
@@ -413,11 +418,11 @@ class Puzzle:
         v3 = self.solution_cols[i3][i_row]
         v4 = self.solution_cols[i4][i_row]
 
-        if self.skipped[10] == 0:
+        if self.skipped_for_position[10] == 0:
             self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3 and c[i4] == v4]  # NOQA
 
         try:
-            proposed_combo = self.valids_for_row[i_row][self.skipped[10]]
+            proposed_combo = self.valids_for_row[i_row][self.skipped_for_position[10]]
             self.solution_rows[i_row] = proposed_combo
 
             return proposed_combo
