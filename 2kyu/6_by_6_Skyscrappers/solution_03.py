@@ -55,8 +55,8 @@ class Puzzle:
         self._seen_from_sides = None
         self._combos_for_row = None
         self._combos_for_col = None
-        self._sorted_rows = None
-        self._sorted_cols = None
+        #self._sorted_rows = None
+        #self._sorted_cols = None
 
     @property
     def row_clues(self):
@@ -148,10 +148,11 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 1:
+        while i_placement < 2:
             combo = self.place_combo(i_placement)
             if combo is None:
                 self.skipped_for_position[i_placement] = 0
+                self.valids_for_position[i_placement] = None
                 self.skipped_for_position[i_placement - 1] += 1
                 i_placement -= 1
                 continue
@@ -208,16 +209,45 @@ class Puzzle:
                     min_row = i_row
 
             self.valids_for_position[0] = self.combos_for_row[min_row]
+            self.position_to_row_or_col[0] = min_row
 
         # This should always work, unless there is no solution:
         proposed_combo = self.valids_for_position[0][self.skipped_for_position[0]]
-        self.position_to_row_or_col[0] = min_row
         self.combo_for_position[0] = proposed_combo
+        print(f"row {self.position_to_row_or_col[0]} = {proposed_combo}")
 
         return proposed_combo
 
     def place_second_combo(self) -> Union[list, None]:
-        i_col = self.sorted_cols[0]
+        if self.valids_for_position[1] is None:
+            i0 = self.position_to_row_or_col[0]
+
+            min_col = -1
+            min_valids = []
+            min_n_valids = None
+            for i_col, combos in enumerate(self.combos_for_col):
+                v0 = self.combo_for_position[0][i_col]
+                valids = [c for c in combos if c[i0] == v0]
+                n_valids = len(valids)
+                if min_n_valids is None or n_valids < min_n_valids:
+                    if n_valids == 0:
+                        return None
+
+                    min_col = i_col
+                    min_valids = valids
+                    min_n_valids = n_valids
+
+            self.valids_for_position[1] = min_valids
+            self.position_to_row_or_col[1] = min_col
+
+        try:
+            proposed_combo = self.valids_for_position[1][self.skipped_for_position[1]]
+            self.combo_for_position[1] = proposed_combo
+            print(f"col {self.position_to_row_or_col[1]} = {proposed_combo}")
+
+            return proposed_combo
+        except IndexError:
+            return None
 
         i_row = self.sorted_rows[0]
         v0 = self.solution_rows[i_row][i_col]
