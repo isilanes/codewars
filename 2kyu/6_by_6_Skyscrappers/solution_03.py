@@ -148,11 +148,12 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 3:
+        while i_placement < 4:
             combo = self.place_combo(i_placement)
             if combo is None:
                 self.skipped_for_position[i_placement] = 0
                 self.valids_for_position[i_placement] = None
+                self.position_to_row_or_col[i_placement] = None
                 self.skipped_for_position[i_placement - 1] += 1
                 i_placement -= 1
                 continue
@@ -161,18 +162,101 @@ class Puzzle:
 
         return self.solution
 
+    def calc_valids_for_first_row(self):
+        min_row = -1
+        min_valids = None
+        for i_row, combos in enumerate(self.combos_for_row):
+            n_valids = len(combos)
+            if min_valids is None or n_valids < min_valids:
+                min_valids = n_valids
+                min_row = i_row
+
+        self.valids_for_position[0] = self.combos_for_row[min_row]
+        self.position_to_row_or_col[0] = min_row
+
+    def calc_valids_for_first_col(self) -> bool:
+        i0 = self.position_to_row_or_col[0]
+
+        min_col = -1
+        min_valids = []
+        min_n_valids = None
+        for i_col, combos in enumerate(self.combos_for_col):
+            v0 = self.combo_for_position[0][i_col]
+            valids = [c for c in combos if c[i0] == v0]
+            n_valids = len(valids)
+            if min_n_valids is None or n_valids < min_n_valids:
+                if n_valids == 0:
+                    return False
+
+                min_col = i_col
+                min_valids = valids
+                min_n_valids = n_valids
+
+        self.valids_for_position[1] = min_valids
+        self.position_to_row_or_col[1] = min_col
+
+        return True
+
+    def calc_valids_for_second_row(self) -> bool:
+        i0 = self.position_to_row_or_col[1]
+
+        min_row = -1
+        min_valids = []
+        min_n_valids = None
+        for i_row, combos in enumerate(self.combos_for_row):
+            if i_row == self.position_to_row_or_col[0]:  # avoid re-placing previous row
+                continue
+            v0 = self.combo_for_position[1][i_row]
+            valids = [c for c in combos if c[i0] == v0]
+            n_valids = len(valids)
+            if min_n_valids is None or n_valids < min_n_valids:
+                if n_valids == 0:
+                    return False
+
+                min_row = i_row
+                min_valids = valids
+                min_n_valids = n_valids
+
+        self.valids_for_position[2] = min_valids
+        self.position_to_row_or_col[2] = min_row
+
+        return True
+
+    def calc_valids_for_second_col(self) -> bool:
+        i0 = self.position_to_row_or_col[0]
+        i1 = self.position_to_row_or_col[2]
+
+        min_col, min_valids, min_n_valids = -1, [], None
+        for i_col, combos in enumerate(self.combos_for_col):
+            if i_col == self.position_to_row_or_col[1]:
+                continue
+            v0 = self.combo_for_position[0][i_col]
+            v1 = self.combo_for_position[2][i_col]
+            valids = [c for c in combos if c[i0] == v0 and c[i1] == v1]
+            n_valids = len(valids)
+            if min_n_valids is None or n_valids < min_n_valids:
+                if n_valids == 0:
+                    return False
+
+                min_col, min_valids, min_n_valids = i_col, valids, n_valids
+
+        self.valids_for_position[3] = min_valids
+        self.position_to_row_or_col[3] = min_col
+
+        return True
+
     def place_combo(self, i_placement: int) -> Union[list, None]:
         if i_placement == 0:
-            return self.place_first_combo()
+            return self.place_first_row()
 
         elif i_placement == 1:
-            return self.place_second_combo()
+            return self.place_first_col()
 
         elif i_placement == 2:
-            return self.place_third_combo()
+            return self.place_second_row()
 
         elif i_placement == 3:
-            return self.place_fourth_combo()
+            return self.place_second_col()
 
         elif i_placement == 4:
             return self.place_fifth_combo()
@@ -198,18 +282,15 @@ class Puzzle:
         elif i_placement == 11:
             return self.check_twelfth_combo()
 
-    def place_first_combo(self) -> Union[list, None]:
-        if self.valids_for_position[0] is None:
-            min_row = -1
-            min_valids = None
-            for i_row, combos in enumerate(self.combos_for_row):
-                n_valids = len(combos)
-                if min_valids is None or n_valids < min_valids:
-                    min_valids = n_valids
-                    min_row = i_row
+    def place_first_row(self) -> Union[list, None]:
+        buena = (2, 1, 4, 3, 5, 6)
+        self.combo_for_position[0] = buena
+        self.position_to_row_or_col[0] = 0
+        print(f"row {self.position_to_row_or_col[0]} = {buena}")
+        return buena
 
-            self.valids_for_position[0] = self.combos_for_row[min_row]
-            self.position_to_row_or_col[0] = min_row
+        if self.valids_for_position[0] is None:
+            self.calc_valids_for_first_row()
 
         # This should always work, unless there is no solution:
         proposed_combo = self.valids_for_position[0][self.skipped_for_position[0]]
@@ -218,27 +299,17 @@ class Puzzle:
 
         return proposed_combo
 
-    def place_second_combo(self) -> Union[list, None]:
+    def place_first_col(self) -> Union[list, None]:
+        buena = (1, 6, 3, 5, 4, 2)
+        self.combo_for_position[1] = buena
+        self.position_to_row_or_col[1] = 1
+        print(f"col {self.position_to_row_or_col[1]} = {buena}")
+        return buena
+
         if self.valids_for_position[1] is None:
-            i0 = self.position_to_row_or_col[0]
-
-            min_col = -1
-            min_valids = []
-            min_n_valids = None
-            for i_col, combos in enumerate(self.combos_for_col):
-                v0 = self.combo_for_position[0][i_col]
-                valids = [c for c in combos if c[i0] == v0]
-                n_valids = len(valids)
-                if min_n_valids is None or n_valids < min_n_valids:
-                    if n_valids == 0:
-                        return None
-
-                    min_col = i_col
-                    min_valids = valids
-                    min_n_valids = n_valids
-
-            self.valids_for_position[1] = min_valids
-            self.position_to_row_or_col[1] = min_col
+            success = self.calc_valids_for_first_col()
+            if not success:
+                return None
 
         try:
             proposed_combo = self.valids_for_position[1][self.skipped_for_position[1]]
@@ -249,29 +320,21 @@ class Puzzle:
         except IndexError:
             return None
 
-    def place_third_combo(self) -> Union[list, None]:
+    def place_second_row(self) -> Union[list, None]:
+        buena = (6, 5, 2, 1, 3, 4)
+        self.combo_for_position[2] = buena
+        self.position_to_row_or_col[2] = 3
+        print(f"row {self.position_to_row_or_col[2]} = {buena}")
+        return buena
+
         if self.valids_for_position[2] is None:
-            i0 = self.position_to_row_or_col[1]
+            success = self.calc_valids_for_second_row()
+            if not success:
+                return None
 
-            min_row = -1
-            min_valids = []
-            min_n_valids = None
-            for i_row, combos in enumerate(self.combos_for_row):
-                if i_row == self.position_to_row_or_col[0]:  # avoid re-placing previous row
-                    continue
-                v0 = self.combo_for_position[1][i_row]
-                valids = [c for c in combos if c[i0] == v0]
-                n_valids = len(valids)
-                if min_n_valids is None or n_valids < min_n_valids:
-                    if n_valids == 0:
-                        return None
-
-                    min_row = i_row
-                    min_valids = valids
-                    min_n_valids = n_valids
-
-            self.valids_for_position[2] = min_valids
-            self.position_to_row_or_col[2] = min_row
+        print(self.position_to_row_or_col[2])
+        print(buena in self.valids_for_position[2])
+        exit()
 
         try:
             proposed_combo = self.valids_for_position[2][self.skipped_for_position[2]]
@@ -282,19 +345,26 @@ class Puzzle:
         except IndexError:
             return None
 
-    def place_fourth_combo(self) -> Union[list, None]:
-        i_col = self.sorted_cols[1]
+    def place_second_col(self) -> Union[list, None]:
+        buena = (4, 3, 6, 2, 1, 5)
+        self.combo_for_position[3] = buena
+        self.position_to_row_or_col[3] = 2
+        print(f"col {self.position_to_row_or_col[3]} = {buena}")
+        return buena
 
-        i0 = self.sorted_rows[0]
-        i1 = self.sorted_rows[1]
-        v0 = self.solution_rows[i0][i_col]
-        v1 = self.solution_rows[i1][i_col]
-        if self.skipped_for_position[3] == 0:
-            self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1]
+        if self.valids_for_position[3] is None:
+            success = self.calc_valids_for_second_col()
+            if not success:
+                return None
+
+        print(self.position_to_row_or_col[3])
+        print(buena in self.valids_for_position[3])
+        exit()
 
         try:
-            proposed_combo = self.valids_for_col[i_col][self.skipped_for_position[3]]
-            self.solution_cols[i_col] = proposed_combo
+            proposed_combo = self.valids_for_position[3][self.skipped_for_position[3]]
+            self.combo_for_position[3] = proposed_combo
+            print(f"col {self.position_to_row_or_col[3]} = {proposed_combo}")
 
             return proposed_combo
         except IndexError:
