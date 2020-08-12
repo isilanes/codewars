@@ -257,10 +257,12 @@ class Puzzle:
             min_valids = []
             min_n_valids = None
             for i_row, combos in enumerate(self.combos_for_row):
+                if i_row == self.position_to_row_or_col[0]:  # avoid re-placing previous row
+                    continue
                 v0 = self.combo_for_position[1][i_row]
                 valids = [c for c in combos if c[i0] == v0]
                 n_valids = len(valids)
-                if min_n_valids is None or n_valids < min_valids:
+                if min_n_valids is None or n_valids < min_n_valids:
                     if n_valids == 0:
                         return None
 
@@ -275,22 +277,6 @@ class Puzzle:
             proposed_combo = self.valids_for_position[2][self.skipped_for_position[2]]
             self.combo_for_position[2] = proposed_combo
             print(f"row {self.position_to_row_or_col[2]} = {proposed_combo}")
-
-            return proposed_combo
-        except IndexError:
-            return None
-
-
-        i_row = self.sorted_rows[1]
-
-        i0 = self.sorted_cols[0]
-        v0 = self.solution_cols[i0][i_row]
-        if self.skipped_for_position[2] == 0:
-            self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0]
-
-        try:
-            proposed_combo = self.valids_for_row[i_row][self.skipped_for_position[2]]
-            self.solution_rows[i_row] = proposed_combo
 
             return proposed_combo
         except IndexError:
