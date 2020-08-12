@@ -101,9 +101,9 @@ class Puzzle:
         for p in range(0, 2 * N_ELEMENTS, 2):
             i_row = self.position_to_row_or_col[p]
             if i_row is not None:
-                s[i_row] = self.combo_for_position[p]
+                s[i_row] = list(self.combo_for_position[p])
 
-        return tuple(s)
+        return s
 
     def fits_in_row(self, i_row, combo) -> bool:
         left_clue, right_clue = self.row_clues[i_row]
@@ -132,7 +132,7 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 4:
+        while i_placement < 2 * N_ELEMENTS:
             combo = self.place_nth_combo(i_placement)
             if combo is None:
                 self.skipped_for_position[i_placement] = 0
@@ -366,12 +366,54 @@ class Puzzle:
 
         return True
 
-    def check_sixth_col(self) -> bool:
-        already_placed_cols = self.position_to_row_or_col[1:10:2]
-        missing_col = 15 - sum(already_placed_cols)  # 15 = 0 + 1 + 2 + 3 + 4 + 5
+    def calc_valids_for_sixth_col(self) -> bool:
+        i0, i1, i2, i3, i4, i5 = self.position_to_row_or_col[:11:2]  # 0, 2, 4, 6, 8, 10 (rows)
+
+        min_index, min_valids, min_n_valids = -1, [], None
+        for i, combos in enumerate(self.combos_for_col):
+            if i in self.position_to_row_or_col[1:10:2]:  # 1, 3, 5, 7, 9 (cols)
+                continue
+            v0, v1, v2, v3, v4, v5 = [c[i] for c in self.combo_for_position[:11:2]]
+            valids = [c for c in combos if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3 and c[i4] == v4 and c[i5] == v5]
+            n_valids = len(valids)
+            if min_n_valids is None or n_valids < min_n_valids:
+                if n_valids == 0:
+                    return False
+
+                min_index, min_valids, min_n_valids = i, valids, n_valids
+
+        self.valids_for_position[11] = min_valids
+        self.position_to_row_or_col[11] = min_index
+
+        return True
+
+    def calc_valids_for_seventh_row(self) -> bool:
+        i0, i1, i2, i3, i4, i5 = self.position_to_row_or_col[1:12:2]  # 1, 3, 5, 7, 9, 11 (cols)
+
+        min_index, min_valids, min_n_valids = -1, [], None
+        for i, combos in enumerate(self.combos_for_row):
+            if i in self.position_to_row_or_col[:11:2]:  # 0, 2, 4, 6, 8, 10 (rows)
+                continue
+            v0, v1, v2, v3, v4, v5 = [c[i] for c in self.combo_for_position[1:12:2]]
+            valids = [c for c in combos if c[i0] == v0 and c[i1] == v1 and c[i2] == v2 and c[i3] == v3 and c[i4] == v4 and c[i5] == v5]
+            n_valids = len(valids)
+            if min_n_valids is None or n_valids < min_n_valids:
+                if n_valids == 0:
+                    return False
+
+                min_index, min_valids, min_n_valids = i, valids, n_valids
+
+        self.valids_for_position[12] = min_valids
+        self.position_to_row_or_col[12] = min_index
+
+        return True
+
+    def check_seventh_col(self) -> bool:
+        already_placed_cols = self.position_to_row_or_col[1:12:2]
+        missing_col = 21 - sum(already_placed_cols)  # 15 = 0 + 1 + 2 + 3 + 4 + 5 + 6
 
         combo_must_be = [None for _ in range(N_ELEMENTS)]
-        for i, ix in enumerate(self.position_to_row_or_col[:11:2]):  # 0, 2, 4, 6, 8, 10 (all rows)
+        for i, ix in enumerate(self.position_to_row_or_col[:13:2]):  # 0, 2, 4, 6, 8, 10, 12 (all rows)
             combo_must_be[ix] = self.combo_for_position[2*i][missing_col]
 
         combo_must_be = tuple(combo_must_be)
@@ -402,7 +444,9 @@ class Puzzle:
                 self.calc_valids_for_fifth_row,
                 self.calc_valids_for_fifth_col,
                 self.calc_valids_for_sixth_row,
-                self.check_sixth_col,
+                self.calc_valids_for_sixth_col,
+                self.calc_valids_for_seventh_row,
+                self.check_seventh_col,
             )
             success = calcs[n]()
             if not success:

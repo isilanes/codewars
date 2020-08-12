@@ -52,7 +52,6 @@ class TestFunctions(unittest.TestCase):
 
         self.assertEqual(p.col_clues, expected)
 
-    @unittest.skip("not yet")
     def test_case_1(self):
         clues = [7, 0, 0, 0, 2, 2, 3, 0, 0, 3, 0, 0, 0, 0, 3, 0, 3, 0, 0, 5, 0, 0, 0, 0, 0, 5, 0, 4]
 
@@ -68,7 +67,6 @@ class TestFunctions(unittest.TestCase):
 
         self.assertEqual(solve_puzzle(clues), expected)
 
-    @unittest.skip("Very hard")
     def test_case_2(self):
         clues = [0, 2, 3, 0, 2, 0, 0, 5, 0, 4, 5, 0, 4, 0, 0, 4, 2, 0, 0, 0, 6, 5, 2, 2, 2, 2, 4, 1]
 
@@ -84,7 +82,6 @@ class TestFunctions(unittest.TestCase):
 
         self.assertEqual(solve_puzzle(clues), expected)
 
-    @unittest.skip("VERY hard")
     def test_case_2_extra(self):
         clues = [0, 2, 3, 0, 2, 0, 0, 5, 0, 4, 5, 0, 4, 0, 0, 4, 2, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0]
 

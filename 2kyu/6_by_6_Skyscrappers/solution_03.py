@@ -132,7 +132,7 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 12:
+        while i_placement < 2 * N_ELEMENTS:
             combo = self.place_nth_combo(i_placement)
             if combo is None:
                 self.skipped_for_position[i_placement] = 0
