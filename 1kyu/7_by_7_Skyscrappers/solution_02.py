@@ -8,7 +8,7 @@ def seen_from_left(combo):
     seen = 0
     max_h = 0
     for h in combo:
-        if h == 6:
+        if h == 7:
             seen += 1
             break
 
