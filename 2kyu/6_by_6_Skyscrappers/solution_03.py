@@ -169,105 +169,91 @@ class Puzzle:
         return self.solution
 
     def calc_valids_for_first_row(self):
-        min_row = -1
-        min_valids = None
-        for i_row, combos in enumerate(self.combos_for_row):
+        min_index, min_valids, min_n_valids = -1, [], None
+        for i, combos in enumerate(self.combos_for_row):
             n_valids = len(combos)
-            if min_valids is None or n_valids < min_valids:
-                min_valids = n_valids
-                min_row = i_row
+            if min_n_valids is None or n_valids < min_n_valids:
+                min_index, min_valids, min_n_valids = i, combos, n_valids
 
-        self.valids_for_position[0] = self.combos_for_row[min_row]
-        self.position_to_row_or_col[0] = min_row
+        self.valids_for_position[0] = self.combos_for_row[min_index]
+        self.position_to_row_or_col[0] = min_index
 
     def calc_valids_for_first_col(self) -> bool:
         i0 = self.position_to_row_or_col[0]
 
-        min_col = -1
-        min_valids = []
-        min_n_valids = None
-        for i_col, combos in enumerate(self.combos_for_col):
-            v0 = self.combo_for_position[0][i_col]
+        min_index, min_valids, min_n_valids = -1, [], None
+        for i, combos in enumerate(self.combos_for_col):
+            v0 = self.combo_for_position[0][i]
             valids = [c for c in combos if c[i0] == v0]
             n_valids = len(valids)
             if min_n_valids is None or n_valids < min_n_valids:
                 if n_valids == 0:
                     return False
 
-                min_col = i_col
-                min_valids = valids
-                min_n_valids = n_valids
+                min_index, min_valids, min_n_valids = i, valids, n_valids
 
         self.valids_for_position[1] = min_valids
-        self.position_to_row_or_col[1] = min_col
+        self.position_to_row_or_col[1] = min_index
 
         return True
 
     def calc_valids_for_second_row(self) -> bool:
         i0 = self.position_to_row_or_col[1]
 
-        min_row = -1
-        min_valids = []
-        min_n_valids = None
-        for i_row, combos in enumerate(self.combos_for_row):
-            if i_row == self.position_to_row_or_col[0]:  # avoid re-placing previous row
+        min_index, min_valids, min_n_valids = -1, [], None
+        for i, combos in enumerate(self.combos_for_row):
+            if i == self.position_to_row_or_col[0]:  # avoid re-placing previous row
                 continue
-            v0 = self.combo_for_position[1][i_row]
+            v0 = self.combo_for_position[1][i]
             valids = [c for c in combos if c[i0] == v0]
             n_valids = len(valids)
             if min_n_valids is None or n_valids < min_n_valids:
                 if n_valids == 0:
                     return False
 
-                min_row = i_row
-                min_valids = valids
-                min_n_valids = n_valids
+                min_index, min_valids, min_n_valids = i, valids, n_valids
 
         self.valids_for_position[2] = min_valids
-        self.position_to_row_or_col[2] = min_row
+        self.position_to_row_or_col[2] = min_index
 
         return True
 
     def calc_valids_for_second_col(self) -> bool:
-        i0 = self.position_to_row_or_col[0]
-        i1 = self.position_to_row_or_col[2]
+        i0, i1 = self.position_to_row_or_col[:3:2]  # 0, 2 (rows)
 
-        min_col, min_valids, min_n_valids = -1, [], None
-        for i_col, combos in enumerate(self.combos_for_col):
-            if i_col == self.position_to_row_or_col[1]:
+        min_index, min_valids, min_n_valids = -1, [], None
+        for i, combos in enumerate(self.combos_for_col):
+            if i == self.position_to_row_or_col[1]:
                 continue
-            v0 = self.combo_for_position[0][i_col]
-            v1 = self.combo_for_position[2][i_col]
+            v0, v1 = [c[i] for c in self.combo_for_position[:3:2]]  # 1, 3 (cols)
             valids = [c for c in combos if c[i0] == v0 and c[i1] == v1]
             n_valids = len(valids)
             if min_n_valids is None or n_valids < min_n_valids:
                 if n_valids == 0:
                     return False
 
-                min_col, min_valids, min_n_valids = i_col, valids, n_valids
+                min_index, min_valids, min_n_valids = i, valids, n_valids
 
         self.valids_for_position[3] = min_valids
-        self.position_to_row_or_col[3] = min_col
+        self.position_to_row_or_col[3] = min_index
 
         return True
 
     def calc_valids_for_third_row(self) -> bool:
-        i0 = self.position_to_row_or_col[1]
-        i1 = self.position_to_row_or_col[3]
+        i0, i1 = self.position_to_row_or_col[1:4:2]  # 1, 3 (cols)
 
         min_index, min_valids, min_n_valids = -1, [], None
-        for i_row, combos in enumerate(self.combos_for_row):
-            if i_row in self.position_to_row_or_col[:3:2]:  # 0 and 2
+        for i, combos in enumerate(self.combos_for_row):
+            if i in self.position_to_row_or_col[:3:2]:  # 0 and 2  (rows)
                 continue
-            v0 = self.combo_for_position[1][i_row]
-            v1 = self.combo_for_position[3][i_row]
+            v0, v1 = [c[i] for c in self.combo_for_position[1:4:2]]  # 1, 3 (cols)
             valids = [c for c in combos if c[i0] == v0 and c[i1] == v1]
             n_valids = len(valids)
             if min_n_valids is None or n_valids < min_n_valids:
                 if n_valids == 0:
                     return False
 
-                min_index, min_valids, min_n_valids = i_row, valids, n_valids
+                min_index, min_valids, min_n_valids = i, valids, n_valids
 
         self.valids_for_position[4] = min_valids
         self.position_to_row_or_col[4] = min_index
