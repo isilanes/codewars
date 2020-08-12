@@ -148,7 +148,7 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 4:
+        while i_placement < 5:
             combo = self.place_combo(i_placement)
             if combo is None:
                 self.skipped_for_position[i_placement] = 0
@@ -245,6 +245,29 @@ class Puzzle:
 
         return True
 
+    def calc_valids_for_third_row(self) -> bool:
+        i0 = self.position_to_row_or_col[1]
+        i1 = self.position_to_row_or_col[3]
+
+        min_index, min_valids, min_n_valids = -1, [], None
+        for i_row, combos in enumerate(self.combos_for_row):
+            if i_row in self.position_to_row_or_col[:3:2]: # 0 and 2
+                continue
+            v0 = self.combo_for_position[1][i_row]
+            v1 = self.combo_for_position[3][i_row]
+            valids = [c for c in combos if c[i0] == v0 and c[i1] == v1]
+            n_valids = len(valids)
+            if min_n_valids is None or n_valids < min_n_valids:
+                if n_valids == 0:
+                    return False
+
+                min_index, min_valids, min_n_valids = i_row, valids, n_valids
+
+        self.valids_for_position[4] = min_valids
+        self.position_to_row_or_col[4] = min_index
+
+        return True
+
     def place_combo(self, i_placement: int) -> Union[list, None]:
         if i_placement == 0:
             return self.place_first_row()
@@ -259,7 +282,7 @@ class Puzzle:
             return self.place_second_col()
 
         elif i_placement == 4:
-            return self.place_fifth_combo()
+            return self.place_third_row()
 
         elif i_placement == 5:
             return self.place_sixth_combo()
@@ -370,19 +393,26 @@ class Puzzle:
         except IndexError:
             return None
 
-    def place_fifth_combo(self) -> Union[list, None]:
-        i_row = self.sorted_rows[2]
+    def place_third_row(self) -> Union[list, None]:
+        buena = (5, 4, 1, 6, 2, 3)
+        self.combo_for_position[4] = buena
+        self.position_to_row_or_col[4] = 4
+        print(f"row {self.position_to_row_or_col[4]} = {buena}")
+        return buena
 
-        i0 = self.sorted_cols[0]
-        i1 = self.sorted_cols[1]
-        v0 = self.solution_cols[i0][i_row]
-        v1 = self.solution_cols[i1][i_row]
-        if self.skipped_for_position[4] == 0:
-            self.valids_for_row[i_row] = [c for c in self.combos_for_row[i_row] if c[i0] == v0 and c[i1] == v1]
+        if self.valids_for_position[4] is None:
+            success = self.calc_valids_for_third_row()
+            if not success:
+                return None
+
+        print(self.position_to_row_or_col[4])
+        print(buena in self.valids_for_position[4])
+        exit()
 
         try:
-            proposed_combo = self.valids_for_row[i_row][self.skipped_for_position[4]]
-            self.solution_rows[i_row] = proposed_combo
+            proposed_combo = self.valids_for_position[4][self.skipped_for_position[4]]
+            self.combo_for_position[4] = proposed_combo
+            print(f"row {self.position_to_row_or_col[4]} = {proposed_combo}")
 
             return proposed_combo
         except IndexError:
