@@ -84,10 +84,8 @@ class Puzzle:
     @property
     def combos_for_row(self):
         if self._combos_for_row is None:
-            print("DEBUG87")
             self._combos_for_row = []
             for i_row in range(N_ELEMENTS):
-                print(i_row, len(self.all_combos))
                 valid_combos = [c for c in self.all_combos if self.fits_in_row(i_row, c)]
                 self._combos_for_row.append(valid_combos)
 
@@ -121,13 +119,11 @@ class Puzzle:
 
     @property
     def solution(self) -> tuple:
-        return tuple([row for row in self.solution_rows])
+        return tuple([self.combo_for_position[p] for p in range(0, 2 * N_ELEMENTS, 2)])
 
     def fits_in_row(self, i_row, combo) -> bool:
         left_clue, right_clue = self.row_clues[i_row]
         left_seen, right_seen = self.seen_from_sides[combo]
-        print("DEBUG129", left_clue, right_clue)
-        exit()
 
         if left_clue != 0 and left_clue != left_seen:
             return False
@@ -202,20 +198,16 @@ class Puzzle:
             return self.check_twelfth_combo()
 
     def place_first_combo(self) -> Union[list, None]:
-        print("DEBUG201", self.valids_for_position)
         if self.valids_for_position[0] is None:
             min_row = -1
             min_valids = None
             for i_row, combos in enumerate(self.combos_for_row):
-                print(i_row, combos)
                 n_valids = len(combos)
                 if min_valids is None or n_valids < min_valids:
                     min_valids = n_valids
                     min_row = i_row
 
             self.valids_for_position[0] = self.combos_for_row[min_row]
-
-        print("DEBUG2313", self.valids_for_position[0])
 
         # This should always work, unless there is no solution:
         proposed_combo = self.valids_for_position[0][self.skipped_for_position[0]]
