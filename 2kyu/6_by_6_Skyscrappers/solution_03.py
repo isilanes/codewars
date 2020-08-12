@@ -148,7 +148,7 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 5:
+        while i_placement < 6:
             combo = self.place_combo(i_placement)
             if combo is None:
                 self.skipped_for_position[i_placement] = 0
@@ -251,7 +251,7 @@ class Puzzle:
 
         min_index, min_valids, min_n_valids = -1, [], None
         for i_row, combos in enumerate(self.combos_for_row):
-            if i_row in self.position_to_row_or_col[:3:2]: # 0 and 2
+            if i_row in self.position_to_row_or_col[:3:2]:  # 0 and 2
                 continue
             v0 = self.combo_for_position[1][i_row]
             v1 = self.combo_for_position[3][i_row]
@@ -265,6 +265,27 @@ class Puzzle:
 
         self.valids_for_position[4] = min_valids
         self.position_to_row_or_col[4] = min_index
+
+        return True
+
+    def calc_valids_for_third_col(self) -> bool:
+        i0, i1, i2 = self.position_to_row_or_col[:5:2]  # indices for rows 0, 2, 4
+
+        min_index, min_valids, min_n_valids = -1, [], None
+        for i, combos in enumerate(self.combos_for_col):
+            if i in self.position_to_row_or_col[1:4:2]:  # indices for cols 1 and 3
+                continue
+            v0, v1, v2 = [c[i] for c in self.combo_for_position[:5:2]]
+            valids = [c for c in combos if c[i0] == v0 and c[i1] == v1 and c[i2] == v2]
+            n_valids = len(valids)
+            if min_n_valids is None or n_valids < min_n_valids:
+                if n_valids == 0:
+                    return False
+
+                min_index, min_valids, min_n_valids = i, valids, n_valids
+
+        self.valids_for_position[5] = min_valids
+        self.position_to_row_or_col[5] = min_index
 
         return True
 
@@ -285,7 +306,7 @@ class Puzzle:
             return self.place_third_row()
 
         elif i_placement == 5:
-            return self.place_sixth_combo()
+            return self.place_third_col()
 
         elif i_placement == 6:
             return self.place_seventh_combo()
@@ -418,21 +439,26 @@ class Puzzle:
         except IndexError:
             return None
 
-    def place_sixth_combo(self) -> Union[list, None]:
-        i_col = self.sorted_cols[2]
+    def place_third_col(self) -> Union[list, None]:
+        buena = (5, 4, 1, 3, 2, 6)
+        self.combo_for_position[5] = buena
+        self.position_to_row_or_col[5] = 4
+        print(f"col {self.position_to_row_or_col[5]} = {buena}")
+        return buena
 
-        i0 = self.sorted_rows[0]
-        i1 = self.sorted_rows[1]
-        i2 = self.sorted_rows[2]
-        v0 = self.solution_rows[i0][i_col]
-        v1 = self.solution_rows[i1][i_col]
-        v2 = self.solution_rows[i2][i_col]
-        if self.skipped_for_position[5] == 0:
-            self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i0] == v0 and c[i1] == v1 and c[i2] == v2]  # NOQA
+        if self.valids_for_position[5] is None:
+            success = self.calc_valids_for_third_col()
+            if not success:
+                return None
+
+        print(self.position_to_row_or_col[5])
+        print(buena in self.valids_for_position[5])
+        exit()
 
         try:
-            proposed_combo = self.valids_for_col[i_col][self.skipped_for_position[5]]
-            self.solution_cols[i_col] = proposed_combo
+            proposed_combo = self.valids_for_position[5][self.skipped_for_position[5]]
+            self.combo_for_position[5] = proposed_combo
+            print(f"col {self.position_to_row_or_col[5]} = {proposed_combo}")
 
             return proposed_combo
         except IndexError:
