@@ -148,7 +148,7 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 2:
+        while i_placement < 3:
             combo = self.place_combo(i_placement)
             if combo is None:
                 self.skipped_for_position[i_placement] = 0
@@ -249,20 +249,38 @@ class Puzzle:
         except IndexError:
             return None
 
-        i_row = self.sorted_rows[0]
-        v0 = self.solution_rows[i_row][i_col]
-        if self.skipped_for_position[1] == 0:
-            self.valids_for_col[i_col] = [c for c in self.combos_for_col[i_col] if c[i_row] == v0]
+    def place_third_combo(self) -> Union[list, None]:
+        if self.valids_for_position[2] is None:
+            i0 = self.position_to_row_or_col[1]
+
+            min_row = -1
+            min_valids = []
+            min_n_valids = None
+            for i_row, combos in enumerate(self.combos_for_row):
+                v0 = self.combo_for_position[1][i_row]
+                valids = [c for c in combos if c[i0] == v0]
+                n_valids = len(valids)
+                if min_n_valids is None or n_valids < min_valids:
+                    if n_valids == 0:
+                        return None
+
+                    min_row = i_row
+                    min_valids = valids
+                    min_n_valids = n_valids
+
+            self.valids_for_position[2] = min_valids
+            self.position_to_row_or_col[2] = min_row
 
         try:
-            proposed_combo = self.valids_for_col[i_col][self.skipped_for_position[1]]
-            self.solution_cols[i_col] = proposed_combo
+            proposed_combo = self.valids_for_position[2][self.skipped_for_position[2]]
+            self.combo_for_position[2] = proposed_combo
+            print(f"row {self.position_to_row_or_col[2]} = {proposed_combo}")
 
             return proposed_combo
         except IndexError:
             return None
 
-    def place_third_combo(self) -> Union[list, None]:
+
         i_row = self.sorted_rows[1]
 
         i0 = self.sorted_cols[0]
