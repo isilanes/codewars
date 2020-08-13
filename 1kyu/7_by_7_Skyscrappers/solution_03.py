@@ -107,7 +107,7 @@ class Puzzle:
         return self._combos_for_col
 
     @property
-    def solution(self) -> tuple:
+    def solution(self) -> list:
         s = [None for _ in range(N_ELEMENTS)]
         for p in range(0, 2 * N_ELEMENTS, 2):
             i_row = self.position_to_row_or_col[p]
@@ -115,6 +115,15 @@ class Puzzle:
                 s[i_row] = list(self.combo_for_position[p])
 
         return s
+
+    @property
+    def rotated_solution(self) -> list:
+        r = []
+        for i_col in range(N_ELEMENTS):
+            row = [self.solution[N_ELEMENTS - 1 - j][i_col] for j in range(N_ELEMENTS)]
+            r.append(row)
+
+        return r
 
     def fits_in_row(self, i_row, combo) -> bool:
         left_clue, right_clue = self.row_clues[i_row]
@@ -155,7 +164,9 @@ class Puzzle:
         self.clean()
 
     def solve(self):
-        if self.is_better_to_rotate():
+        do_rotate = self.is_better_to_rotate()
+
+        if do_rotate:
             self.pre_rotate()
 
         i_placement = 0
@@ -171,7 +182,10 @@ class Puzzle:
 
             i_placement += 1
 
-        return self.solution
+        if do_rotate:
+            return self.rotated_solution
+        else:
+            return self.solution
 
     def calc_valids_for_first_row(self) -> bool:
         min_index, min_valids, min_n_valids = -1, [], None
