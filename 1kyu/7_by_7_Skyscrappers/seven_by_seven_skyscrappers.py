@@ -3,7 +3,7 @@
 import sys
 import argparse
 
-from solution_05 import solve_puzzle
+from solution_06 import solve_puzzle
 
 
 CLUES = [
