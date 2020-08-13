@@ -32,6 +32,14 @@ def solve_puzzle(clues):
     return Puzzle(clues).solve()
 
 
+def are_parallel_combos_congruent(combo_a, combo_b):
+    for ca, cb in zip(combo_a, combo_b):
+        if ca == cb:
+            return False
+
+    return True
+
+
 class Puzzle:
 
     def __init__(self, clues):
@@ -140,7 +148,7 @@ class Puzzle:
         print([len(c) for c in self.combos_for_row])
         print([len(c) for c in self.combos_for_col])
         i_placement = 0
-        while i_placement < 2 * N_ELEMENTS - 13:
+        while i_placement < 2 * N_ELEMENTS - 12:
             combo = self.place_nth_combo(i_placement)
             if combo is None:
                 self.prepare_to_go_back(i_placement)
@@ -151,7 +159,7 @@ class Puzzle:
 
         return self.solution
 
-    def calc_valids_for_first_placement(self) -> bool:
+    def calc_valids_for_first_placement(self, i_placement=None) -> bool:
         buena = (1, 4, 5, 6, 7, 2, 3)
         self.valids_for_position[0] = [buena]
         self.placement_to_row_or_col[0] = 2
@@ -178,22 +186,90 @@ class Puzzle:
 
         return True
 
-    def calc_valids_for_first_col(self) -> bool:
-        i0 = self.placement_to_row_or_col[0]
+    def calc_valids_for_nth_placement(self, i_placement) -> bool:
+        if i_placement == 1:
+            buena = (2, 3, 1, 4, 6, 5, 7)
+            self.valids_for_position[1] = [buena]
+            self.placement_to_row_or_col[1] = 0
+            self.is_row_or_col[1] = "row"
+            return True
 
-        min_index, min_valids, min_n_valids = -1, [], None
-        for i, combos in enumerate(self.combos_for_col):
-            v0 = self.combo_for_position[0][i]
-            valids = [c for c in combos if c[i0] == v0]
+        previous_rows = [self.placement_to_row_or_col[i] for i in range(i_placement) if self.is_row_or_col[i] == "row"]
+        previous_cols = [self.placement_to_row_or_col[i] for i in range(i_placement) if self.is_row_or_col[i] == "col"]
+
+        # Rows:
+        min_index, min_valids, min_n_valids, min_which = -1, [], None, None
+        for i, combos in enumerate(self.combos_for_row):
+            if i in previous_rows:
+                continue
+
+            valids = []
+            for combo in combos:
+                can_be = True
+                for prev_placement in range(i_placement):
+                    # Row vs row:
+                    if self.is_row_or_col[prev_placement] == "row":
+                        if not are_parallel_combos_congruent(combo, self.combo_for_position[prev_placement]):
+                            can_be = False
+                            break
+
+                    # Row vs col:
+                    else:
+                        i_row_cross = i
+                        i_col_cross = self.placement_to_row_or_col[prev_placement]
+                        if self.combo_for_position[prev_placement][i_row_cross] != combo[i_col_cross]:
+                            can_be = False
+                            break
+
+                if can_be:
+                    valids.append(combo)
+
             n_valids = len(valids)
             if min_n_valids is None or n_valids < min_n_valids:
                 if n_valids == 0:
                     return False
 
-                min_index, min_valids, min_n_valids = i, valids, n_valids
+                min_index, min_valids, min_n_valids, min_which = i, valids, n_valids, "row"
 
-        self.valids_for_position[1] = min_valids
-        self.placement_to_row_or_col[1] = min_index
+        # Cols:
+        for i, combos in enumerate(self.combos_for_col):
+            if i in previous_cols:
+                continue
+
+            valids = []
+            for combo in combos:
+                can_be = True
+                for prev_placement in range(i_placement):
+                    # Col vs col:
+                    if self.is_row_or_col[prev_placement] == "col":
+                        if not are_parallel_combos_congruent(combo, self.combo_for_position[prev_placement]):
+                            can_be = False
+                            break
+
+                    # Col vs row:
+                    else:
+                        i_col_cross = i
+                        i_row_cross = self.placement_to_row_or_col[prev_placement]
+                        if self.combo_for_position[prev_placement][i_col_cross] != combo[i_row_cross]:
+                            can_be = False
+                            break
+
+                if can_be:
+                    valids.append(combo)
+
+            n_valids = len(valids)
+            if min_n_valids is None or n_valids < min_n_valids:
+                if n_valids == 0:
+                    return False
+
+                min_index, min_valids, min_n_valids, min_which = i, valids, n_valids, "col"
+
+        #buena = (2, 3, 1, 4, 6, 5, 7)
+        #print("DEBUG268", buena in min_valids)
+
+        self.valids_for_position[i_placement] = min_valids
+        self.placement_to_row_or_col[i_placement] = min_index
+        self.is_row_or_col[i_placement] = min_which
 
         return True
 
@@ -444,7 +520,7 @@ class Puzzle:
     def set_combo(self, i) -> Union[list, None]:
         try:
             proposed_combo = self.valids_for_position[i][self.skipped_for_position[i]]
-            print("DEBUG441", proposed_combo)
+            print("DEBUG441", i, self.is_row_or_col[i], self.placement_to_row_or_col[i], proposed_combo)
             self.combo_for_position[i] = proposed_combo
 
             return proposed_combo
@@ -455,7 +531,7 @@ class Puzzle:
         if self.placement_to_row_or_col[n] is None:
             calcs = (
                 self.calc_valids_for_first_placement,
-                self.calc_valids_for_first_col,
+                self.calc_valids_for_nth_placement,
                 self.calc_valids_for_second_row,
                 self.calc_valids_for_second_col,
                 self.calc_valids_for_third_row,
@@ -469,7 +545,7 @@ class Puzzle:
                 self.calc_valids_for_seventh_row,
                 self.check_seventh_col,
             )
-            success = calcs[n]()
+            success = calcs[n](n)
             if not success:
                 return None
 
