@@ -96,3 +96,80 @@ class TestFunctions(unittest.TestCase):
         ]
 
         self.assertEqual(solve_puzzle(clues), expected)
+
+    @unittest.skip("slow")
+    def test_case_hard(self):
+        clues = [6, 4, 0, 2, 0, 0, 3, 0, 3, 3, 3, 0, 0, 4, 0, 5, 0, 5, 0, 2, 0, 0, 0, 0, 4, 0, 0, 3]
+
+        expected = [
+            [2, 1, 6, 4, 3, 7, 5],
+            [3, 2, 5, 7, 4, 6, 1],
+            [4, 6, 7, 5, 1, 2, 3],
+            [1, 3, 2, 6, 7, 5, 4],
+            [5, 7, 1, 3, 2, 4, 6],
+            [6, 4, 3, 2, 5, 1, 7],
+            [7, 5, 4, 1, 6, 3, 2]
+        ]
+
+        self.assertEqual(solve_puzzle(clues), expected)
+
+    def test_case_hard_2(self):
+        clues = [0, 0, 0, 5, 0, 0, 3, 0, 6, 3, 4, 0, 0, 0, 3, 0, 0, 0, 2, 4, 0, 2, 6, 2, 2, 2, 0, 0]
+
+        expected = [
+            [3, 5, 6, 1, 7, 2, 4],
+            [7, 6, 5, 2, 4, 3, 1],
+            [2, 7, 1, 3, 6, 4, 5],
+            [4, 3, 7, 6, 1, 5, 2],
+            [6, 4, 2, 5, 3, 1, 7],
+            [1, 2, 3, 4, 5, 7, 6],
+            [5, 1, 4, 7, 2, 6, 3]
+        ]
+
+        self.assertEqual(solve_puzzle(clues), expected)
+
+    def test_case_very_hard(self):
+        clues = [0, 0, 5, 0, 0, 0, 6, 4, 0, 0, 2, 0, 2, 0, 0, 5, 2, 0, 0, 0, 5, 0, 3, 0, 5, 0, 0, 3]
+
+        expected = [
+            [3, 4, 1, 7, 6, 5, 2],
+            [7, 1, 2, 5, 4, 6, 3],
+            [6, 3, 5, 2, 1, 7, 4],
+            [1, 2, 3, 6, 7, 4, 5],
+            [5, 7, 6, 4, 2, 3, 1],
+            [4, 5, 7, 1, 3, 2, 6],
+            [2, 6, 4, 3, 5, 1, 7]
+        ]
+
+        self.assertEqual(solve_puzzle(clues), expected)
+
+    @unittest.skip("slow")
+    def test_case_very_hard_2(self):
+        clues = [0, 0, 5, 3, 0, 2, 0, 0, 0, 0, 4, 5, 0, 0, 0, 0, 0, 3, 2, 5, 4, 2, 2, 0, 0, 0, 0, 5]
+
+        expected = [
+            [2, 3, 1, 4, 6, 5, 7],
+            [1, 7, 4, 6, 5, 2, 3],
+            [3, 6, 5, 7, 2, 1, 4],
+            [7, 5, 6, 3, 1, 4, 2],
+            [6, 2, 7, 5, 4, 3, 1],
+            [5, 4, 2, 1, 3, 7, 6],
+            [4, 1, 3, 2, 7, 6, 5]
+        ]
+
+        self.assertEqual(solve_puzzle(clues), expected)
+
+    def test_case_medved(self):
+        clues = [3, 3, 2, 1, 2, 2, 3, 4, 3, 2, 4, 1, 4, 2, 2, 4, 1, 4, 5, 3, 2, 3, 1, 4, 2, 5, 2, 3]
+
+        expected = [
+            [2, 1, 4, 7, 6, 5, 3],
+            [6, 4, 7, 3, 5, 1, 2],
+            [1, 2, 3, 6, 4, 7, 5],
+            [5, 7, 6, 2, 3, 4, 1],
+            [4, 3, 5, 1, 2, 6, 7],
+            [7, 6, 2, 5, 1, 3, 4],
+            [3, 5, 1, 4, 7, 2, 6]
+        ]
+
+        self.assertEqual(solve_puzzle(clues), expected)

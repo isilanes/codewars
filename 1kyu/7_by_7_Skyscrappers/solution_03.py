@@ -150,14 +150,16 @@ class Puzzle:
 
         return True
 
-    def is_better_to_rotate(self):
-        two_best = sorted([len(c) for c in self.combos_for_row])[:2]
-        best_two_rows_n_combos = two_best[0] * two_best[1]
+    def is_better_to_rotate(self, N=2):
+        best_n_rows_combos = 1
+        for n in sorted([len(c) for c in self.combos_for_row])[:N]:
+            best_n_rows_combos *= n
 
-        two_best = sorted([len(c) for c in self.combos_for_col])[:2]
-        best_two_cols_n_combos = two_best[0] * two_best[1]
+        best_n_cols_combos = 1
+        for n in sorted([len(c) for c in self.combos_for_col])[:N]:
+            best_n_cols_combos *= n
 
-        return best_two_cols_n_combos < best_two_rows_n_combos
+        return best_n_cols_combos < best_n_rows_combos
 
     def pre_rotate(self):
         self.clues = self.clues[N_ELEMENTS:] + self.clues[:N_ELEMENTS]
