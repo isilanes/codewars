@@ -145,7 +145,7 @@ class Puzzle:
 
     def solve(self):
         i_placement = 0
-        while i_placement < 2 * N_ELEMENTS - 6:
+        while i_placement < 2 * N_ELEMENTS - 5:
             combo = self.place_nth_combo(i_placement)
             if combo is None:
                 self.prepare_to_go_back(i_placement)
@@ -572,7 +572,7 @@ class Puzzle:
                 self.calc_valids_for_nth_placement,
                 self.calc_valids_for_nth_placement,
                 self.calc_valids_for_nth_placement,
-                self.calc_valids_for_fifth_row,
+                self.calc_valids_for_nth_placement,
                 self.calc_valids_for_fifth_col,
                 self.calc_valids_for_sixth_row,
                 self.calc_valids_for_sixth_col,
