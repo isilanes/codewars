@@ -38,9 +38,20 @@ class Puzzle:
 
     def __init__(self, clues):
         self.clues = clues
-
         self.all_combos = list(permutations(range(1, N_ELEMENTS+1)))
 
+        self.skipped_for_position = [0 for _ in range(2 * N_ELEMENTS)]
+        self.valids_for_position = [None for _ in range(2 * N_ELEMENTS)]
+        self.combo_for_position = [None for _ in range(2 * N_ELEMENTS)]
+        self.position_to_row_or_col = [None for _ in range(2 * N_ELEMENTS)]
+
+        self._row_clues = None
+        self._col_clues = None
+        self._seen_from_sides = None
+        self._combos_for_row = None
+        self._combos_for_col = None
+
+    def clean(self):
         self.skipped_for_position = [0 for _ in range(2 * N_ELEMENTS)]
         self.valids_for_position = [None for _ in range(2 * N_ELEMENTS)]
         self.combo_for_position = [None for _ in range(2 * N_ELEMENTS)]
@@ -130,7 +141,23 @@ class Puzzle:
 
         return True
 
+    def is_better_to_rotate(self):
+        two_best = sorted([len(c) for c in self.combos_for_row])[:2]
+        best_two_rows_n_combos = two_best[0] * two_best[1]
+
+        two_best = sorted([len(c) for c in self.combos_for_col])[:2]
+        best_two_cols_n_combos = two_best[0] * two_best[1]
+
+        return best_two_cols_n_combos < best_two_rows_n_combos
+
+    def pre_rotate(self):
+        self.clues = self.clues[N_ELEMENTS:] + self.clues[:N_ELEMENTS]
+        self.clean()
+
     def solve(self):
+        if self.is_better_to_rotate():
+            self.pre_rotate()
+
         i_placement = 0
         while i_placement < 2 * N_ELEMENTS:
             combo = self.place_nth_combo(i_placement)
