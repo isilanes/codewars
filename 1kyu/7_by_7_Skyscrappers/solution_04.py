@@ -144,11 +144,8 @@ class Puzzle:
         self.skipped_for_position[i_placement - 1] += 1
 
     def solve(self):
-        print("clues", self.clues)
-        print([len(c) for c in self.combos_for_row])
-        print([len(c) for c in self.combos_for_col])
         i_placement = 0
-        while i_placement < 2 * N_ELEMENTS - 7:
+        while i_placement < 2 * N_ELEMENTS - 6:
             combo = self.place_nth_combo(i_placement)
             if combo is None:
                 self.prepare_to_go_back(i_placement)
@@ -223,6 +220,12 @@ class Puzzle:
             self.is_row_or_col[i_placement] = "row"
             self.placement_to_row_or_col[i_placement] = 3
             return True
+        elif i_placement == 7:
+            buena = (3, 6, 5, 7, 2, 1, 4)
+            self.valids_for_position[i_placement] = [buena]
+            self.is_row_or_col[i_placement] = "row"
+            self.placement_to_row_or_col[i_placement] = 2
+            return True
 
         previous_rows = [self.placement_to_row_or_col[i] for i in range(i_placement) if self.is_row_or_col[i] == "row"]
         previous_cols = [self.placement_to_row_or_col[i] for i in range(i_placement) if self.is_row_or_col[i] == "col"]
@@ -294,8 +297,8 @@ class Puzzle:
 
                 min_index, min_valids, min_n_valids, min_which = i, valids, n_valids, "col"
 
-        if i_placement == 6:
-            buena = (7, 5, 6, 3, 1, 4, 2)
+        if i_placement == 7:
+            buena = (3, 6, 5, 7, 2, 1, 4)
             print("DEBUG297", buena in min_valids)
 
         self.valids_for_position[i_placement] = min_valids
@@ -568,7 +571,7 @@ class Puzzle:
                 self.calc_valids_for_nth_placement,
                 self.calc_valids_for_nth_placement,
                 self.calc_valids_for_nth_placement,
-                self.calc_valids_for_fourth_col,
+                self.calc_valids_for_nth_placement,
                 self.calc_valids_for_fifth_row,
                 self.calc_valids_for_fifth_col,
                 self.calc_valids_for_sixth_row,
