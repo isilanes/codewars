@@ -50,9 +50,12 @@ def are_compatible(c1, c2):
     else:
         return combo_1[idx_2] == combo_2[idx_1]
 
-    print(what_1, what_2)
 
-    raise Exception
+def are_cross_compatible(c1, c2):
+    combo_1, idx_1 = c1
+    combo_2, idx_2 = c2
+
+    return combo_1[idx_2] == combo_2[idx_1]
 
 
 class Puzzle:
@@ -64,19 +67,12 @@ class Puzzle:
         self.skipped_for_step = [0 for _ in range(2 * N_ELEMENTS)]
         self.combo_for_step = [None for _ in range(2 * N_ELEMENTS)]
         self.placement_to_index = [None for _ in range(2 * N_ELEMENTS)]
-        self.is_row_or_col = [None for _ in range(2 * N_ELEMENTS)]
 
         self._row_clues = None
         self._col_clues = None
         self._seen_from_sides = None
         self._combos_for_row = None
         self._combos_for_col = None
-
-        self.combos_for_rows_at_step = [[None for _ in range(N_ELEMENTS)] for _ in range(2 * N_ELEMENTS)]
-        self.combos_for_rows_at_step[0] = self.combos_for_row
-
-        self.combos_for_cols_at_step = [[None for _ in range(N_ELEMENTS)] for _ in range(2 * N_ELEMENTS)]
-        self.combos_for_cols_at_step[0] = self.combos_for_col
 
         self.sorted_data = []
 
@@ -125,12 +121,9 @@ class Puzzle:
 
     @property
     def solution(self) -> list:
-        s = [None for _ in range(N_ELEMENTS)]
-        for p in range(0, 2 * N_ELEMENTS):
-            if self.is_row_or_col[p] == "row":
-                i_row = self.placement_to_index[p]
-                if i_row is not None:
-                    s[i_row] = list(self.combo_for_step[p])
+        s = []
+        for p in range(0, 2 * N_ELEMENTS, 2):
+            s.append(self.combo_for_step[p])
 
         return s
 
@@ -160,149 +153,289 @@ class Puzzle:
         return True
 
     def solve(self):
+        import time
+
+        t0 = time.time()
         print([len(self.combos_for_row[i]) for i in range(7)])
         print([len(self.combos_for_col[i]) for i in range(7)])
 
-        dsu = []
-        for i in range(N_ELEMENTS):
-            dsu.append([len(self._combos_for_row[i]), "row", i])
-            dsu.append([len(self._combos_for_col[i]), "col", i])
+        sorted_row_indices = [i for _, i in sorted([(len(self.combos_for_row[i]), i) for i in range(N_ELEMENTS)])]
+        sorted_col_indices = [i for _, i in sorted([(len(self.combos_for_col[i]), i) for i in range(N_ELEMENTS)])]
 
-        self.sorted_data = list(sorted(dsu))
+        print()
+        print("rows:", sorted_row_indices)
+        print("cols:", sorted_col_indices)
 
-        # Step 0:
-        n, what, idx = self.sorted_data[0]
-        if what == "row":
-            combos_of_one = [("row", idx, c) for c in self.combos_for_row[idx]]
-        else:
-            combos_of_one = [("col", idx, c) for c in self.combos_for_col[idx]]
+        combos_with_digit_in_position_in_row = {}
+        for i_row in range(N_ELEMENTS):
+            combos_with_digit_in_position_in_row[i_row] = {}
+            for row_combo in self.combos_for_row[i_row]:
+                for i, d in enumerate(row_combo):
+                    combos_with_digit_in_position_in_row[i_row][i] = combos_with_digit_in_position_in_row[i_row].get(i, {})
+                    combos_with_digit_in_position_in_row[i_row][i][d] = combos_with_digit_in_position_in_row[i_row][i].get(d, [])
+                    combos_with_digit_in_position_in_row[i_row][i][d].append(row_combo)
 
-        cum = n
-        print(f"DEBUG161 {what} {idx} -> {len(combos_of_one)}/{cum}")
+        combos_with_digit_in_position_in_col = {}
+        for i_col in range(N_ELEMENTS):
+            combos_with_digit_in_position_in_col[i_col] = {}
+            for col_combo in self.combos_for_col[i_col]:
+                for i, d in enumerate(col_combo):
+                    combos_with_digit_in_position_in_col[i_col][i] = combos_with_digit_in_position_in_col[i_col].get(i, {})
+                    combos_with_digit_in_position_in_col[i_col][i][d] = combos_with_digit_in_position_in_col[i_col][i].get(d, [])
+                    combos_with_digit_in_position_in_col[i_col][i][d].append(col_combo)
 
-        # Step 1:
-        n, what, idx = self.sorted_data[1]
-        cum *= n
+        t1 = time.time()
+        print(f"dt={1000*(t1-t0):5.1f} ms")
+        print()
 
-        if what == "row":
-            combo_list = self.combos_for_row[idx]
-        else:
-            combo_list = self.combos_for_col[idx]
+        # row0-col0:
+        i_row = sorted_row_indices[0]
+        i_col = sorted_col_indices[0]
+        combos = []
+        for row_combo in self.combos_for_row[i_row]:
+            d = row_combo[i_col]
+            combos.extend([(row_combo, c) for c in combos_with_digit_in_position_in_col[i_col][i_row].get(d, [])])
 
-        combos_of_two = []
-        for combo in combo_list:
-            c2 = (what, idx, combo)
-            new_combos = [(c1, c2) for c1 in combos_of_one if are_compatible(c1, c2)]
-            combos_of_two.extend(new_combos)
+        dt = 1000*(time.time() - t1)
+        print("step0", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        print(f"DEBUG193 {what} {idx} -> {len(combos_of_two)}/{cum}")
+        # row0-col0-row1:
+        i_row = sorted_row_indices[1]
+        i_col = sorted_col_indices[0]
+        new_combos = []
+        for row0, col0 in combos:
+            d = col0[i_row]
+            new_combos.extend([(row0, col0, r) for r in combos_with_digit_in_position_in_row[i_row][i_col].get(d, [])])
 
-        # Step 3:
-        n, what, idx = self.sorted_data[2]
-        cum *= n
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step1", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        if what == "row":
-            combo_list = self.combos_for_row[idx]
-        else:
-            combo_list = self.combos_for_col[idx]
+        # row0-col0-row1-col1:
+        i_row0, i_row1 = sorted_row_indices[:2]
+        i_col = sorted_col_indices[1]
+        new_combos = []
+        cols_for = {}
+        for row0, col0, row1 in combos:
+            d0, d1 = row0[i_col], row1[i_col]
+            try:
+                valids = cols_for[(d0, d1)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, []) if c[i_row1] == d1]
+                cols_for[(d0, d1)] = valids
+            valid_combos = [(row0, col0, row1, c) for c in valids]
+            new_combos.extend(valid_combos)
 
-        combos_of_three = []
-        for combo in combo_list:
-            c3 = (what, idx, combo)
-            new_combos = [(c1, c2, c3) for c1, c2 in combos_of_two if are_compatible(c1, c3) and are_compatible(c2, c3)]
-            combos_of_three.extend(new_combos)
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step2", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        print(f"DEBUG210 {what} {idx} -> {len(combos_of_three)}/{cum}")
+        # row0-col0-row1-col1-row2:
+        i_row = sorted_row_indices[2]
+        i_col0, i_col1 = sorted_col_indices[:2]
+        new_combos = []
+        rows_for = {}
+        for row0, col0, row1, col1 in combos:
+            d0, d1 = col0[i_row], col1[i_row]
+            try:
+                valids = rows_for[(d0, d1)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, []) if c[i_col1] == d1]
+                rows_for[(d0, d1)] = valids
+            valid_combos = [(row0, col0, row1, col1, c) for c in valids]
+            new_combos.extend(valid_combos)
 
-        # Step 4:
-        n, what, idx = self.sorted_data[3]
-        cum *= n
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step3", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        if what == "row":
-            combo_list = self.combos_for_row[idx]
-        else:
-            combo_list = self.combos_for_col[idx]
+        # row0-col0-row1-col1-row2-col2:
+        i_row0, i_row1, i_row2 = sorted_row_indices[:3]
+        i_col = sorted_col_indices[2]
+        new_combos = []
+        cols_for = {}
+        for row0, col0, row1, col1, row2 in combos:
+            d0, d1, d2 = row0[i_col], row1[i_col], row2[i_col]
+            try:
+                valids = cols_for[(d0, d1, d2)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, [])
+                          if c[i_row1] == d1 and c[i_row2] == d2]
+                cols_for[(d0, d1, d2)] = valids
 
-        combos_of_four = []
-        for combo in combo_list:
-            c4 = (what, idx, combo)
-            new_combos = [(c1, c2, c3, c4) for c1, c2, c3 in combos_of_three if are_compatible(c1, c4) and are_compatible(c2, c4) and are_compatible(c3, c4)]
-            combos_of_four.extend(new_combos)
+            valid_combos = [(row0, col0, row1, col1, row2, c) for c in valids]
+            new_combos.extend(valid_combos)
 
-        print(f"DEBUG232 {what} {idx} -> {len(combos_of_four)}/{cum}")
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step4", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        # Step 5:
-        n, what, idx = self.sorted_data[4]
-        cum *= n
+        # row0-col0-row1-col1-row2-col2-row3:
+        i_row = sorted_row_indices[3]
+        i_col0, i_col1, i_col2 = sorted_col_indices[:3]
+        new_combos = []
+        rows_for = {}
+        for row0, col0, row1, col1, row2, col2 in combos:
+            d0, d1, d2 = col0[i_row], col1[i_row], col2[i_row]
+            try:
+                valids = rows_for[(d0, d1, d2)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, [])
+                          if c[i_col1] == d1 and c[i_col2] == d2]
+                rows_for[(d0, d1, d2)] = valids
 
-        if what == "row":
-            combo_list = self.combos_for_row[idx]
-        else:
-            combo_list = self.combos_for_col[idx]
+            valid_combos = [(row0, col0, row1, col1, row2, col2, c) for c in valids]
+            new_combos.extend(valid_combos)
 
-        combos_of_five = []
-        for combo in combo_list:
-            c5 = (what, idx, combo)
-            new_combos = [(c1, c2, c3, c4, c5) for c1, c2, c3, c4 in combos_of_four if are_compatible(c1, c5) and are_compatible(c2, c5) and are_compatible(c3, c5) and are_compatible(c4, c5)]
-            combos_of_five.extend(new_combos)
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step5", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        print(f"DEBUG249 {what} {idx} -> {len(combos_of_five)}/{cum}")
+        # row0-col0-row1-col1-row2-col2-row3-col3:
+        i_row0, i_row1, i_row2, i_row3 = sorted_row_indices[:4]
+        i_col = sorted_col_indices[3]
+        new_combos = []
+        cols_for = {}
+        for row0, col0, row1, col1, row2, col2, row3 in combos:
+            d0, d1, d2, d3 = row0[i_col], row1[i_col], row2[i_col], row3[i_col]
+            try:
+                valids = cols_for[(d0, d1, d2, d3)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, [])
+                          if c[i_row1] == d1 and c[i_row2] == d2 and c[i_row3] == d3]
+                cols_for[(d0, d1, d2, d3)] = valids
+            valid_combos = [(row0, col0, row1, col1, row2, col2, row3, c) for c in valids]
+            new_combos.extend(valid_combos)
 
-        # Step 6:
-        n, what, idx = self.sorted_data[5]
-        cum *= n
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step6", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        if what == "row":
-            combo_list = self.combos_for_row[idx]
-        else:
-            combo_list = self.combos_for_col[idx]
+        # row0-col0-row1-col1-row2-col2-row3-col3-row4:
+        i_row = sorted_row_indices[4]
+        i_col0, i_col1, i_col2, i_col3 = sorted_col_indices[:4]
+        new_combos = []
+        combos_for = {}
+        for row0, col0, row1, col1, row2, col2, row3, col3 in combos:
+            d0, d1, d2, d3 = col0[i_row], col1[i_row], col2[i_row], col3[i_row]
+            try:
+                valids = combos_for[(d0, d1, d2, d3)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, [])
+                          if c[i_col1] == d1 and c[i_col2] == d2 and c[i_col3] == d3]
+                combos_for[(d0, d1, d2, d3)] = valids
 
-        combos_of_six = []
-        for combo in combo_list:
-            c6 = (what, idx, combo)
-            new_combos = [(c1, c2, c3, c4, c5, c6) for c1, c2, c3, c4, c5 in combos_of_five if are_compatible(c1, c6) and are_compatible(c2, c6) and are_compatible(c3, c6) and are_compatible(c4, c6) and are_compatible(c5, c6)]
-            combos_of_six.extend(new_combos)
+            valid_combos = [(row0, col0, row1, col1, row2, col2, row3, col3, c) for c in valids]
+            new_combos.extend(valid_combos)
 
-        print(f"DEBUG266 {what} {idx} -> {len(combos_of_six)}/{cum}")
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step7", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        # Step 7:
-        n, what, idx = self.sorted_data[6]
-        cum *= n
+        # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4:
+        i_row0, i_row1, i_row2, i_row3, i_row4 = sorted_row_indices[:5]
+        i_col = sorted_col_indices[4]
+        new_combos = []
+        combos_for = {}
+        for row0, col0, row1, col1, row2, col2, row3, col3, row4 in combos:
+            d0, d1, d2, d3, d4 = row0[i_col], row1[i_col], row2[i_col], row3[i_col], row4[i_col]
+            try:
+                valids = combos_for[(d0, d1, d2, d3, d4)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, [])
+                          if c[i_row1] == d1 and c[i_row2] == d2 and c[i_row3] == d3 and c[i_row4] == d4]
+                combos_for[(d0, d1, d2, d3, d4)] = valids
 
-        if what == "row":
-            combo_list = self.combos_for_row[idx]
-        else:
-            combo_list = self.combos_for_col[idx]
+            valid_combos = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, c) for c in valids]
+            new_combos.extend(valid_combos)
 
-        combos_of_seven = []
-        for combo in combo_list:
-            c7 = (what, idx, combo)
-            new_combos = [(c1, c2, c3, c4, c5, c6, c7) for c1, c2, c3, c4, c5, c6 in combos_of_six if
-                          are_compatible(c1, c7) and are_compatible(c2, c7) and are_compatible(c3, c7)
-                          and are_compatible(c4, c7) and are_compatible(c5, c7) and are_compatible(c6, c7)]
-            combos_of_seven.extend(new_combos)
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step8", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        print(f"DEBUG285 {what} {idx} -> {len(combos_of_seven)}/{cum}")
+        # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5:
+        i_row = sorted_row_indices[5]
+        i_col0, i_col1, i_col2, i_col3, i_col4 = sorted_col_indices[:5]
+        new_combos = []
+        combos_for = {}
+        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4 in combos:
+            d0, d1, d2, d3, d4 = col0[i_row], col1[i_row], col2[i_row], col3[i_row], col4[i_row]
+            try:
+                valids = combos_for[(d0, d1, d2, d3, d4)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, [])
+                          if c[i_col1] == d1 and c[i_col2] == d2 and c[i_col3] == d3 and c[i_col4] == d4]
+                combos_for[(d0, d1, d2, d3, d4)] = valids
+            valid_combos = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, c) for c in valids]
+            new_combos.extend(valid_combos)
 
-        # Step 8:
-        n, what, idx = self.sorted_data[7]
-        cum *= n
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step9", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
 
-        if what == "row":
-            combo_list = self.combos_for_row[idx]
-        else:
-            combo_list = self.combos_for_col[idx]
+        # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5:
+        i_row0, i_row1, i_row2, i_row3, i_row4, i_row5 = sorted_row_indices[:6]
+        i_col = sorted_col_indices[5]
+        new_combos = []
+        combos_for = {}
+        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5 in combos:
+            d0, d1, d2, d3, d4, d5 = row0[i_col], row1[i_col], row2[i_col], row3[i_col], row4[i_col], row5[i_col]
+            try:
+                valids = combos_for[(d0, d1, d2, d3, d4, d5)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, [])
+                          if c[i_row1] == d1 and c[i_row2] == d2 and c[i_row3] == d3 and c[i_row4] == d4 and c[i_row5] == d5]
+                combos_for[(d0, d1, d2, d3, d4, d5)] = valids
 
-        combos_of_eight = []
-        for combo in combo_list:
-            c8 = (what, idx, combo)
-            new_combos = [(c1, c2, c3, c4, c5, c6, c7, c8) for c1, c2, c3, c4, c5, c6, c7 in combos_of_seven if
-                          are_compatible(c1, c8) and are_compatible(c2, c8) and are_compatible(c3, c8)
-                          and are_compatible(c4, c8) and are_compatible(c5, c8) and are_compatible(c6, c8)
-                          and are_compatible(c7, c8)]
-            combos_of_eight.extend(new_combos)
+            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, c) for c in valids]
+            new_combos.extend(valids)
 
-        print(f"DEBUG305 {what} {idx} -> {len(combos_of_eight)}/{cum}")
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step10", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
+
+        # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5-row6:
+        i_row = sorted_row_indices[6]
+        i_col0, i_col1, i_col2, i_col3, i_col4, i_col5 = sorted_row_indices[:6]
+        new_combos = []
+        combos_for = {}
+        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5 in combos:
+            d0, d1, d2, d3, d4, d5 = col0[i_row], col1[i_row], col2[i_row], col3[i_row], col4[i_row], col5[i_row]
+            try:
+                valids = combos_for[(d0, d1, d2, d3, d4, d5)]
+            except KeyError:
+                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, [])
+                          if c[i_col1] == d1 and c[i_col2] == d2 and c[i_col3] == d3 and c[i_col4] == d4 and c[i_col5] == d5]
+                combos_for[(d0, d1, d2, d3, d4, d5)] = valids
+
+            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, c) for c in valids]
+            new_combos.extend(valids)
+
+        combos = new_combos
+        dt = 1000*(time.time() - t1)
+        print("step11", f"dt={dt:6.0f} ms", f"c={len(combos)}")
+        t1 = time.time()
+
+        print()
+        solution = [None for _ in range(N_ELEMENTS)]
+        for i, combo in enumerate(combos[0]):
+            if not i % 2:  # even, row
+                i_row = sorted_row_indices[i // 2]
+                solution[i_row] = combo
+
+        for row in solution:
+            print(row)
 
         print("\n---")
         return self.solution
