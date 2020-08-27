@@ -3,6 +3,7 @@
 import sys
 import argparse
 
+from cases import CASES
 from solution_06 import solve_puzzle
 
 
@@ -23,8 +24,7 @@ def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-c", "--case",
-                        type=int,
-                        default=0)
+                        default="medium")
 
     parser.add_argument("--rotate",
                         action="store_true",
@@ -39,11 +39,14 @@ def parse_args(args=sys.argv[1:]):
 
 def main():
     opts = parse_args()
-    clues = CLUES[opts.case]
+    clues = CASES[opts.case]["clues"]
+    expected = CASES[opts.case]["expected"]
 
     solution = solve_puzzle(clues)
     for combo in solution:
         print(combo)
+
+    print("Success:", solution == expected)
 
 
 if __name__ == "__main__":
