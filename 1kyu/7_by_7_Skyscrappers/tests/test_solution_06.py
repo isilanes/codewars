@@ -88,5 +88,5 @@ class TestFunctions(unittest.TestCase):
     def test_case_random2(self):
         self._run_case("random2")
 
-    def test_case_random2(self):
-        self._run_case("random2")
+    def test_case_random3(self):
+        self._run_case("random3")

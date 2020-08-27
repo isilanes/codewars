@@ -1,10 +1,8 @@
-import time
 from functools import lru_cache
 from itertools import permutations
 
 
 N_ELEMENTS = 7
-VERBOSE = False
 
 
 def seen_from_left(combo):
@@ -180,14 +178,8 @@ class Puzzle:
     def solve(self):
         do_rotate = self.must_rotate()
 
-        t0 = time.time()
-
         if do_rotate:
             self.pre_rotate()
-
-        if VERBOSE:
-            t1 = time.time()
-            print(f"pre: {1000*(t1 - t0):.0f} ms")
 
         # row0-col0:
         i_row = self.sorted_row_indices[0]
@@ -197,10 +189,6 @@ class Puzzle:
         for row_combo in self.combos_for_row[i_row]:
             d = row_combo[i_col]
             combos.extend([(row_combo, c) for c in self.combos_for_col[i_col] if c[i_row] == d])
-
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step0: {dt:5.0f} ms, c={len(combos)}")
 
         # row0-col0-row1:
         i_row = self.sorted_row_indices[1]
@@ -214,10 +202,6 @@ class Puzzle:
             new_combos.extend([(row0, col0, r) for r in valids])
 
         combos = new_combos
-
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step1: {dt:5.0f} ms, c={len(combos)}")
 
         # row0-col0-row1-col1:
         i_row0, i_row1 = self.sorted_row_indices[:2]
@@ -239,10 +223,6 @@ class Puzzle:
                 new_combos.extend(valids)
 
         combos = new_combos
-
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step2: {dt:5.0f} ms, c={len(combos)}")
 
         # row0-col0-row1-col1-row2:
         i_row = self.sorted_row_indices[2]
@@ -266,10 +246,6 @@ class Puzzle:
 
         combos = new_combos
 
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step3: {dt:5.0f} ms, c={len(combos)}")
-
         # row0-col0-row1-col1-row2-col2:
         i_row0, i_row1, i_row2 = self.sorted_row_indices[:3]
         i_col = self.sorted_col_indices[2]
@@ -291,10 +267,6 @@ class Puzzle:
                 new_combos.extend(valids)
 
         combos = new_combos
-
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step4: {dt:5.0f} ms, c={len(combos)}")
 
         # row0-col0-row1-col1-row2-col2-row3:
         i_row = self.sorted_row_indices[3]
@@ -318,10 +290,6 @@ class Puzzle:
 
         combos = new_combos
 
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step5: {dt:5.0f} ms, c={len(combos)}")
-
         # row0-col0-row1-col1-row2-col2-row3-col3:
         i_row0, i_row1, i_row2, i_row3 = self.sorted_row_indices[:4]
         i_col = self.sorted_col_indices[3]
@@ -343,10 +311,6 @@ class Puzzle:
                 new_combos.extend(valids)
 
         combos = new_combos
-
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step6: {dt:5.0f} ms, c={len(combos)}")
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4:
         i_row = self.sorted_row_indices[4]
@@ -370,10 +334,6 @@ class Puzzle:
 
         combos = new_combos
 
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step7: {dt:5.0f} ms, c={len(combos)}")
-
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4:
         i_row0, i_row1, i_row2, i_row3, i_row4 = self.sorted_row_indices[:5]
         i_col = self.sorted_col_indices[4]
@@ -395,10 +355,6 @@ class Puzzle:
                 new_combos.extend(valids)
 
         combos = new_combos
-
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step8: {dt:5.0f} ms, c={len(combos)}")
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5:
         i_row = self.sorted_row_indices[5]
@@ -422,10 +378,6 @@ class Puzzle:
 
         combos = new_combos
 
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f" step9: {dt:5.0f} ms, c={len(combos)}")
-
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5:
         i_row0, i_row1, i_row2, i_row3, i_row4, i_row5 = self.sorted_row_indices[:6]
         i_col = self.sorted_col_indices[5]
@@ -448,10 +400,6 @@ class Puzzle:
 
         combos = new_combos
 
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f"step10: {dt:5.0f} ms, c={len(combos)}")
-
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5-row6:
         i_row = self.sorted_row_indices[6]
 
@@ -472,10 +420,6 @@ class Puzzle:
 
         combos = new_combos
 
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f"step11: {dt:5.0f} ms, c={len(combos)}")
-
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5-row6-col6:
         i_col = self.sorted_col_indices[6]
 
@@ -490,19 +434,12 @@ class Puzzle:
                 valid = (row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, row6, combo)
                 new_combos.append(valid)
 
-        if len(new_combos) != 1:
-            raise ValueError  # this should never happen
-
         combos = new_combos
         solution = [None for _ in range(N_ELEMENTS)]
         for i, combo in enumerate(combos[0]):
             if not i % 2:  # even, row
                 i_row = self.sorted_row_indices[i // 2]
                 solution[i_row] = list(combo)
-
-        if VERBOSE:
-            dt = 1000*(time.time() - t1); t1 = time.time()
-            print(f"step12: {dt:5.0f} ms, c={len(combos)}")
 
         if do_rotate:
             return rotated_solution(solution)
