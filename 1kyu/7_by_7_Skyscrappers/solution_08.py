@@ -185,24 +185,6 @@ class Puzzle:
         if do_rotate:
             self.pre_rotate()
 
-        combos_with_digit_in_position_in_row = {}
-        for i_row in range(N_ELEMENTS):
-            combos_with_digit_in_position_in_row[i_row] = {}
-            for row_combo in self.combos_for_row[i_row]:
-                for i, d in enumerate(row_combo):
-                    combos_with_digit_in_position_in_row[i_row][i] = combos_with_digit_in_position_in_row[i_row].get(i, {})
-                    combos_with_digit_in_position_in_row[i_row][i][d] = combos_with_digit_in_position_in_row[i_row][i].get(d, [])
-                    combos_with_digit_in_position_in_row[i_row][i][d].append(row_combo)
-
-        combos_with_digit_in_position_in_col = {}
-        for i_col in range(N_ELEMENTS):
-            combos_with_digit_in_position_in_col[i_col] = {}
-            for col_combo in self.combos_for_col[i_col]:
-                for i, d in enumerate(col_combo):
-                    combos_with_digit_in_position_in_col[i_col][i] = combos_with_digit_in_position_in_col[i_col].get(i, {})
-                    combos_with_digit_in_position_in_col[i_col][i][d] = combos_with_digit_in_position_in_col[i_col][i].get(d, [])
-                    combos_with_digit_in_position_in_col[i_col][i][d].append(col_combo)
-
         if VERBOSE:
             t1 = time.time()
             print(f"pre: {1000*(t1 - t0):.0f} ms")
@@ -210,10 +192,11 @@ class Puzzle:
         # row0-col0:
         i_row = self.sorted_row_indices[0]
         i_col = self.sorted_col_indices[0]
+
         combos = []
         for row_combo in self.combos_for_row[i_row]:
             d = row_combo[i_col]
-            combos.extend([(row_combo, c) for c in combos_with_digit_in_position_in_col[i_col][i_row].get(d, [])])
+            combos.extend([(row_combo, c) for c in self.combos_for_col[i_col] if c[i_row] == d])
 
         if VERBOSE:
             dt = 1000*(time.time() - t1); t1 = time.time()
@@ -222,10 +205,11 @@ class Puzzle:
         # row0-col0-row1:
         i_row = self.sorted_row_indices[1]
         i_col = self.sorted_col_indices[0]
+
         new_combos = []
         for row0, col0 in combos:
             d = col0[i_row]
-            valids = [r for r in combos_with_digit_in_position_in_row[i_row][i_col].get(d, [])]
+            valids = [c for c in self.combos_for_row[i_row] if c[i_col] == d]
             valids = [r for r in valids if are_parallel_combos_congruent(row0, r)]
             new_combos.extend([(row0, col0, r) for r in valids])
 
@@ -238,18 +222,21 @@ class Puzzle:
         # row0-col0-row1-col1:
         i_row0, i_row1 = self.sorted_row_indices[:2]
         i_col = self.sorted_col_indices[1]
+
+        combos_for = {}
+        for combo in self.combos_for_col[i_col]:
+            p = (combo[i_row0], combo[i_row1])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
         new_combos = []
-        cols_for = {}
         for row0, col0, row1 in combos:
-            d0, d1 = row0[i_col], row1[i_col]
-            try:
-                valids = cols_for[(d0, d1)]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, []) if c[i_row1] == d1]
-                cols_for[(d0, d1)] = valids
-            valids = [c for c in valids if are_parallel_combos_congruent(col0, c)]
-            valids = [(row0, col0, row1, c) for c in valids]
-            new_combos.extend(valids)
+            p = (row0[i_col], row1[i_col])
+            if p in combos_for:
+                valids = [(row0, col0, row1, c) for c in combos_for[p] if are_parallel_combos_congruent(col0, c)]
+                new_combos.extend(valids)
 
         combos = new_combos
 
@@ -260,20 +247,22 @@ class Puzzle:
         # row0-col0-row1-col1-row2:
         i_row = self.sorted_row_indices[2]
         i_col0, i_col1 = self.sorted_col_indices[:2]
-        new_combos = []
-        rows_for = {}
-        for row0, col0, row1, col1 in combos:
-            d0, d1 = col0[i_row], col1[i_row]
-            p = (d0, d1)
-            try:
-                valids = rows_for[p]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, []) if c[i_col1] == d1]
-                rows_for[p] = valids
 
-            # Recall that are_parallel_combos_congruent() function uses caching:
-            valids = [(row0, col0, row1, col1, c) for c in valids if are_parallel_combos_congruent(c, row0, row1)]
-            new_combos.extend(valids)
+        combos_for = {}
+        for combo in self.combos_for_row[i_row]:
+            p = (combo[i_col0], combo[i_col1])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
+        new_combos = []
+        for row0, col0, row1, col1 in combos:
+            p = (col0[i_row], col1[i_row])
+            if p in combos_for:
+                valids = [(row0, col0, row1, col1, c) for c in combos_for[p]
+                          if are_parallel_combos_congruent(c, row0, row1)]
+                new_combos.extend(valids)
 
         combos = new_combos
 
@@ -284,21 +273,22 @@ class Puzzle:
         # row0-col0-row1-col1-row2-col2:
         i_row0, i_row1, i_row2 = self.sorted_row_indices[:3]
         i_col = self.sorted_col_indices[2]
-        new_combos = []
-        cols_for = {}
-        for row0, col0, row1, col1, row2 in combos:
-            d0, d1, d2 = row0[i_col], row1[i_col], row2[i_col]
-            try:
-                valids = cols_for[(d0, d1, d2)]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, [])
-                          if c[i_row1] == d1 and c[i_row2] == d2]
-                cols_for[(d0, d1, d2)] = valids
 
-            # Recall that are_parallel_combos_congruent() function uses caching:
-            valids = [c for c in valids if are_parallel_combos_congruent(c, col0, col1)]
-            valids = [(row0, col0, row1, col1, row2, c) for c in valids]
-            new_combos.extend(valids)
+        combos_for = {}
+        for combo in self.combos_for_col[i_col]:
+            p = (combo[i_row0], combo[i_row1], combo[i_row2])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
+        new_combos = []
+        for row0, col0, row1, col1, row2 in combos:
+            p = (row0[i_col], row1[i_col], row2[i_col])
+            if p in combos_for:
+                valids = [c for c in combos_for[p] if are_parallel_combos_congruent(c, col0, col1)]
+                valids = [(row0, col0, row1, col1, row2, c) for c in valids]
+                new_combos.extend(valids)
 
         combos = new_combos
 
@@ -309,21 +299,22 @@ class Puzzle:
         # row0-col0-row1-col1-row2-col2-row3:
         i_row = self.sorted_row_indices[3]
         i_col0, i_col1, i_col2 = self.sorted_col_indices[:3]
-        new_combos = []
-        rows_for = {}
-        for row0, col0, row1, col1, row2, col2 in combos:
-            d0, d1, d2 = col0[i_row], col1[i_row], col2[i_row]
-            try:
-                valids = rows_for[(d0, d1, d2)]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, [])
-                          if c[i_col1] == d1 and c[i_col2] == d2]
-                rows_for[(d0, d1, d2)] = valids
 
-            # Recall that are_parallel_combos_congruent() function uses caching:
-            valids = [c for c in valids if are_parallel_combos_congruent(c, row0, row1, row2)]
-            valids = [(row0, col0, row1, col1, row2, col2, c) for c in valids]
-            new_combos.extend(valids)
+        combos_for = {}
+        for combo in self.combos_for_row[i_row]:
+            p = (combo[i_col0], combo[i_col1], combo[i_col2])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
+        new_combos = []
+        for row0, col0, row1, col1, row2, col2 in combos:
+            p = (col0[i_row], col1[i_row], col2[i_row])
+            if p in combos_for:
+                valids = [(row0, col0, row1, col1, row2, col2, c) for c in combos_for[p]
+                          if are_parallel_combos_congruent(c, row0, row1, row2)]
+                new_combos.extend(valids)
 
         combos = new_combos
 
@@ -334,21 +325,22 @@ class Puzzle:
         # row0-col0-row1-col1-row2-col2-row3-col3:
         i_row0, i_row1, i_row2, i_row3 = self.sorted_row_indices[:4]
         i_col = self.sorted_col_indices[3]
-        new_combos = []
-        cols_for = {}
-        for row0, col0, row1, col1, row2, col2, row3 in combos:
-            d0, d1, d2, d3 = row0[i_col], row1[i_col], row2[i_col], row3[i_col]
-            try:
-                valids = cols_for[(d0, d1, d2, d3)]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, [])
-                          if c[i_row1] == d1 and c[i_row2] == d2 and c[i_row3] == d3]
-                cols_for[(d0, d1, d2, d3)] = valids
 
-            # Recall that are_parallel_combos_congruent() function uses caching:
-            valids = [c for c in valids if are_parallel_combos_congruent(c, col0, col1, col2)]
-            valids = [(row0, col0, row1, col1, row2, col2, row3, c) for c in valids]
-            new_combos.extend(valids)
+        combos_for = {}
+        for combo in self.combos_for_col[i_col]:
+            p = (combo[i_row0], combo[i_row1], combo[i_row2], combo[i_row3])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
+        new_combos = []
+        for row0, col0, row1, col1, row2, col2, row3 in combos:
+            p = (row0[i_col], row1[i_col], row2[i_col], row3[i_col])
+            if p in combos_for:
+                valids = [(row0, col0, row1, col1, row2, col2, row3, c) for c in combos_for[p]
+                          if are_parallel_combos_congruent(c, col0, col1, col2)]
+                new_combos.extend(valids)
 
         combos = new_combos
 
@@ -359,20 +351,22 @@ class Puzzle:
         # row0-col0-row1-col1-row2-col2-row3-col3-row4:
         i_row = self.sorted_row_indices[4]
         i_col0, i_col1, i_col2, i_col3 = self.sorted_col_indices[:4]
-        new_combos = []
-        combos_for = {}
-        for row0, col0, row1, col1, row2, col2, row3, col3 in combos:
-            d0, d1, d2, d3 = col0[i_row], col1[i_row], col2[i_row], col3[i_row]
-            try:
-                valids = combos_for[(d0, d1, d2, d3)]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, [])
-                          if c[i_col1] == d1 and c[i_col2] == d2 and c[i_col3] == d3]
-                combos_for[(d0, d1, d2, d3)] = valids
 
-            valids = [c for c in valids if are_parallel_combos_congruent(c, row0, row1, row2, row3)]
-            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, c) for c in valids]
-            new_combos.extend(valids)
+        combos_for = {}
+        for combo in self.combos_for_row[i_row]:
+            p = (combo[i_col0], combo[i_col1], combo[i_col2], combo[i_col3])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
+        new_combos = []
+        for row0, col0, row1, col1, row2, col2, row3, col3 in combos:
+            p = (col0[i_row], col1[i_row], col2[i_row], col3[i_row])
+            if p in combos_for:
+                valids = [(row0, col0, row1, col1, row2, col2, row3, col3, c) for c in combos_for[p]
+                          if are_parallel_combos_congruent(c, row0, row1, row2, row3)]
+                new_combos.extend(valids)
 
         combos = new_combos
 
@@ -383,20 +377,22 @@ class Puzzle:
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4:
         i_row0, i_row1, i_row2, i_row3, i_row4 = self.sorted_row_indices[:5]
         i_col = self.sorted_col_indices[4]
-        new_combos = []
-        combos_for = {}
-        for row0, col0, row1, col1, row2, col2, row3, col3, row4 in combos:
-            d0, d1, d2, d3, d4 = row0[i_col], row1[i_col], row2[i_col], row3[i_col], row4[i_col]
-            try:
-                valids = combos_for[(d0, d1, d2, d3, d4)]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, [])
-                          if c[i_row1] == d1 and c[i_row2] == d2 and c[i_row3] == d3 and c[i_row4] == d4]
-                combos_for[(d0, d1, d2, d3, d4)] = valids
 
-            valids = [c for c in valids if are_parallel_combos_congruent(c, col0, col1, col2, col3)]
-            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, c) for c in valids]
-            new_combos.extend(valids)
+        combos_for = {}
+        for combo in self.combos_for_col[i_col]:
+            p = (combo[i_row0], combo[i_row1], combo[i_row2], combo[i_row3], combo[i_row4])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
+        new_combos = []
+        for row0, col0, row1, col1, row2, col2, row3, col3, row4 in combos:
+            p = (row0[i_col], row1[i_col], row2[i_col], row3[i_col], row4[i_col])
+            if p in combos_for:
+                valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, c) for c in combos_for[p]
+                          if are_parallel_combos_congruent(c, col0, col1, col2, col3)]
+                new_combos.extend(valids)
 
         combos = new_combos
 
@@ -407,20 +403,22 @@ class Puzzle:
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5:
         i_row = self.sorted_row_indices[5]
         i_col0, i_col1, i_col2, i_col3, i_col4 = self.sorted_col_indices[:5]
-        new_combos = []
-        combos_for = {}
-        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4 in combos:
-            d0, d1, d2, d3, d4 = col0[i_row], col1[i_row], col2[i_row], col3[i_row], col4[i_row]
-            try:
-                valids = combos_for[(d0, d1, d2, d3, d4)]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, [])
-                          if c[i_col1] == d1 and c[i_col2] == d2 and c[i_col3] == d3 and c[i_col4] == d4]
-                combos_for[(d0, d1, d2, d3, d4)] = valids
 
-            valids = [c for c in valids if are_parallel_combos_congruent(c, row0, row1, row2, row3, row4)]
-            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, c) for c in valids]
-            new_combos.extend(valids)
+        combos_for = {}
+        for combo in self.combos_for_row[i_row]:
+            p = (combo[i_col0], combo[i_col1], combo[i_col2], combo[i_col3], combo[i_col4])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
+        new_combos = []
+        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4 in combos:
+            p = (col0[i_row], col1[i_row], col2[i_row], col3[i_row], col4[i_row])
+            if p in combos_for:
+                valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, c) for c in combos_for[p]
+                          if are_parallel_combos_congruent(c, row0, row1, row2, row3, row4)]
+                new_combos.extend(valids)
 
         combos = new_combos
 
@@ -431,20 +429,22 @@ class Puzzle:
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5:
         i_row0, i_row1, i_row2, i_row3, i_row4, i_row5 = self.sorted_row_indices[:6]
         i_col = self.sorted_col_indices[5]
-        new_combos = []
-        combos_for = {}
-        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5 in combos:
-            d0, d1, d2, d3, d4, d5 = row0[i_col], row1[i_col], row2[i_col], row3[i_col], row4[i_col], row5[i_col]
-            try:
-                valids = combos_for[(d0, d1, d2, d3, d4, d5)]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, [])
-                          if c[i_row1] == d1 and c[i_row2] == d2 and c[i_row3] == d3 and c[i_row4] == d4 and c[i_row5] == d5]
-                combos_for[(d0, d1, d2, d3, d4, d5)] = valids
 
-            valids = [c for c in valids if are_parallel_combos_congruent(c, col0, col1, col2, col3, col4)]
-            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, c) for c in valids]
-            new_combos.extend(valids)
+        combos_for = {}
+        for combo in self.combos_for_col[i_col]:
+            p = (combo[i_row0], combo[i_row1], combo[i_row2], combo[i_row3], combo[i_row4], combo[i_row5])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
+        new_combos = []
+        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5 in combos:
+            p = (row0[i_col], row1[i_col], row2[i_col], row3[i_col], row4[i_col], row5[i_col])
+            if p in combos_for:
+                valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, c) for c in combos_for[p]
+                          if are_parallel_combos_congruent(c, col0, col1, col2, col3, col4)]
+                new_combos.extend(valids)
 
         combos = new_combos
 
@@ -454,20 +454,20 @@ class Puzzle:
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5-row6:
         i_row = self.sorted_row_indices[6]
-        i_col0, i_col1, i_col2, i_col3, i_col4, i_col5 = self.sorted_col_indices[:6]
-        new_combos = []
-        combos_for = {}
-        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5 in combos:
-            d0, d1, d2, d3, d4, d5 = col0[i_row], col1[i_row], col2[i_row], col3[i_row], col4[i_row], col5[i_row]
-            try:
-                valids = combos_for[(d0, d1, d2, d3, d4, d5)]
-            except KeyError:
-                valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, [])
-                          if c[i_col1] == d1 and c[i_col2] == d2 and c[i_col3] == d3 and c[i_col4] == d4 and c[i_col5] == d5]
-                combos_for[(d0, d1, d2, d3, d4, d5)] = valids
 
-            valids = [c for c in valids if are_parallel_combos_congruent(c, row0, row1, row2, row3, row4, row5)]
-            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, c) for c in valids]
+        combos_for = {}
+        for combo in self.combos_for_row[i_row]:
+            p = tuple([combo[i] for i in self.sorted_col_indices[:6]])
+            if p in combos_for:
+                combos_for[p].append(combo)
+            else:
+                combos_for[p] = [combo]
+
+        new_combos = []
+        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5 in combos:
+            p = (col0[i_row], col1[i_row], col2[i_row], col3[i_row], col4[i_row], col5[i_row])
+            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, c) for c in combos_for[p]
+                      if are_parallel_combos_congruent(c, row0, row1, row2, row3, row4, row5)]
             new_combos.extend(valids)
 
         combos = new_combos
@@ -477,8 +477,8 @@ class Puzzle:
             print(f"step11: {dt:5.0f} ms, c={len(combos)}")
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5-row6-col6:
-        i_row0, i_row1, i_row2, i_row3, i_row4, i_row5, i_row6 = self.sorted_row_indices
         i_col = self.sorted_col_indices[6]
+
         new_combos = []
         for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, row6 in combos:
             rows = [row0, row1, row2, row3, row4, row5, row6]
@@ -486,7 +486,7 @@ class Puzzle:
             for i, i_row in enumerate(self.sorted_row_indices):
                 combo[i_row] = rows[i][i_col]
             combo = tuple(combo)
-            if combo in combos_with_digit_in_position_in_col[i_col][i_row0].get(combo[i_row0], []):
+            if combo in self.combos_for_col[i_col]:
                 valid = (row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, row6, combo)
                 new_combos.append(valid)
 
