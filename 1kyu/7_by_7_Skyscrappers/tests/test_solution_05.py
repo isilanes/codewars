@@ -1,7 +1,7 @@
 import unittest
 from random import randint
 
-from solution_05 import seen_from_left, seen_from_right, solve_puzzle, Puzzle
+from solution_06 import seen_from_left, seen_from_right, solve_puzzle, Puzzle
 
 
 class TestFunctions(unittest.TestCase):
@@ -97,7 +97,6 @@ class TestFunctions(unittest.TestCase):
 
         self.assertEqual(solve_puzzle(clues), expected)
 
-    @unittest.skip("slow")
     def test_case_hard(self):
         clues = [6, 4, 0, 2, 0, 0, 3, 0, 3, 3, 3, 0, 0, 4, 0, 5, 0, 5, 0, 2, 0, 0, 0, 0, 4, 0, 0, 3]
 
@@ -143,7 +142,6 @@ class TestFunctions(unittest.TestCase):
 
         self.assertEqual(solve_puzzle(clues), expected)
 
-    @unittest.skip("slow")
     def test_case_very_hard_2(self):
         clues = [0, 0, 5, 3, 0, 2, 0, 0, 0, 0, 4, 5, 0, 0, 0, 0, 0, 3, 2, 5, 4, 2, 2, 0, 0, 0, 0, 5]
 

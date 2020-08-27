@@ -32,9 +32,9 @@ def solve_puzzle(clues):
     return Puzzle(clues).solve()
 
 
-def are_parallel_combos_congruent(combo_a, combo_b):
-    for ca, cb in zip(combo_a, combo_b):
-        if ca == cb:
+def are_parallel_combos_congruent(combo_a, *others):
+    for d in zip(combo_a, *others):
+        if d[0] in d[1:]:
             return False
 
     return True
@@ -153,18 +153,8 @@ class Puzzle:
         return True
 
     def solve(self):
-        import time
-
-        t0 = time.time()
-        print([len(self.combos_for_row[i]) for i in range(7)])
-        print([len(self.combos_for_col[i]) for i in range(7)])
-
         sorted_row_indices = [i for _, i in sorted([(len(self.combos_for_row[i]), i) for i in range(N_ELEMENTS)])]
         sorted_col_indices = [i for _, i in sorted([(len(self.combos_for_col[i]), i) for i in range(N_ELEMENTS)])]
-
-        print()
-        print("rows:", sorted_row_indices)
-        print("cols:", sorted_col_indices)
 
         combos_with_digit_in_position_in_row = {}
         for i_row in range(N_ELEMENTS):
@@ -184,10 +174,6 @@ class Puzzle:
                     combos_with_digit_in_position_in_col[i_col][i][d] = combos_with_digit_in_position_in_col[i_col][i].get(d, [])
                     combos_with_digit_in_position_in_col[i_col][i][d].append(col_combo)
 
-        t1 = time.time()
-        print(f"dt={1000*(t1-t0):5.1f} ms")
-        print()
-
         # row0-col0:
         i_row = sorted_row_indices[0]
         i_col = sorted_col_indices[0]
@@ -196,9 +182,9 @@ class Puzzle:
             d = row_combo[i_col]
             combos.extend([(row_combo, c) for c in combos_with_digit_in_position_in_col[i_col][i_row].get(d, [])])
 
-        dt = 1000*(time.time() - t1)
-        print("step0", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
+        #dt = 1000*(time.time() - t1)
+        #print(" step0", f"dt={dt:6.0f} ms", f"c={len(combos)}", combos[0])
+        #t1 = time.time()
 
         # row0-col0-row1:
         i_row = sorted_row_indices[1]
@@ -206,12 +192,14 @@ class Puzzle:
         new_combos = []
         for row0, col0 in combos:
             d = col0[i_row]
-            new_combos.extend([(row0, col0, r) for r in combos_with_digit_in_position_in_row[i_row][i_col].get(d, [])])
+            valids = [r for r in combos_with_digit_in_position_in_row[i_row][i_col].get(d, [])]
+            valids = [r for r in valids if are_parallel_combos_congruent(row0, r)]
+            new_combos.extend([(row0, col0, r) for r in valids])
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step1", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
+        #dt = 1000*(time.time() - t1)
+        #print(" step1", f"dt={dt:6.0f} ms", f"c={len(combos)}", combos[0])
+        #t1 = time.time()
 
         # row0-col0-row1-col1:
         i_row0, i_row1 = sorted_row_indices[:2]
@@ -225,13 +213,14 @@ class Puzzle:
             except KeyError:
                 valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, []) if c[i_row1] == d1]
                 cols_for[(d0, d1)] = valids
-            valid_combos = [(row0, col0, row1, c) for c in valids]
-            new_combos.extend(valid_combos)
+            valids = [c for c in valids if are_parallel_combos_congruent(col0, c)]
+            valids = [(row0, col0, row1, c) for c in valids]
+            new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step2", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
+        #dt = 1000*(time.time() - t1)
+        #print(" step2", f"dt={dt:6.0f} ms", f"c={len(combos)}", combos[0])
+        #t1 = time.time()
 
         # row0-col0-row1-col1-row2:
         i_row = sorted_row_indices[2]
@@ -245,13 +234,14 @@ class Puzzle:
             except KeyError:
                 valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, []) if c[i_col1] == d1]
                 rows_for[(d0, d1)] = valids
-            valid_combos = [(row0, col0, row1, col1, c) for c in valids]
-            new_combos.extend(valid_combos)
+            valids = [c for c in valids if are_parallel_combos_congruent(c, row0, row1)]
+            valids = [(row0, col0, row1, col1, c) for c in valids]
+            new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step3", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
+        #dt = 1000*(time.time() - t1)
+        #print(" step3", f"dt={dt:6.0f} ms", f"c={len(combos)}", combos[0])
+        #t1 = time.time()
 
         # row0-col0-row1-col1-row2-col2:
         i_row0, i_row1, i_row2 = sorted_row_indices[:3]
@@ -267,13 +257,14 @@ class Puzzle:
                           if c[i_row1] == d1 and c[i_row2] == d2]
                 cols_for[(d0, d1, d2)] = valids
 
-            valid_combos = [(row0, col0, row1, col1, row2, c) for c in valids]
-            new_combos.extend(valid_combos)
+            valids = [c for c in valids if are_parallel_combos_congruent(c, col0, col1)]
+            valids = [(row0, col0, row1, col1, row2, c) for c in valids]
+            new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step4", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
+        #dt = 1000*(time.time() - t1)
+        #print(" step4", f"dt={dt:6.0f} ms", f"c={len(combos)}", combos[0])
+        #t1 = time.time()
 
         # row0-col0-row1-col1-row2-col2-row3:
         i_row = sorted_row_indices[3]
@@ -289,13 +280,14 @@ class Puzzle:
                           if c[i_col1] == d1 and c[i_col2] == d2]
                 rows_for[(d0, d1, d2)] = valids
 
-            valid_combos = [(row0, col0, row1, col1, row2, col2, c) for c in valids]
-            new_combos.extend(valid_combos)
+            valids = [c for c in valids if are_parallel_combos_congruent(c, row0, row1, row2)]
+            valids = [(row0, col0, row1, col1, row2, col2, c) for c in valids]
+            new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step5", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
+        #dt = 1000*(time.time() - t1)
+        #print(" step5", f"dt={dt:6.0f} ms", f"c={len(combos)}", combos[0])
+        #t1 = time.time()
 
         # row0-col0-row1-col1-row2-col2-row3-col3:
         i_row0, i_row1, i_row2, i_row3 = sorted_row_indices[:4]
@@ -310,13 +302,15 @@ class Puzzle:
                 valids = [c for c in combos_with_digit_in_position_in_col[i_col][i_row0].get(d0, [])
                           if c[i_row1] == d1 and c[i_row2] == d2 and c[i_row3] == d3]
                 cols_for[(d0, d1, d2, d3)] = valids
-            valid_combos = [(row0, col0, row1, col1, row2, col2, row3, c) for c in valids]
-            new_combos.extend(valid_combos)
+
+            valids = [c for c in valids if are_parallel_combos_congruent(c, col0, col1, col2)]
+            valids = [(row0, col0, row1, col1, row2, col2, row3, c) for c in valids]
+            new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step6", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
+        #dt = 1000*(time.time() - t1)
+        #print(" step6", f"dt={dt:6.0f} ms", f"c={len(combos)}", combos[0])
+        #t1 = time.time()
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4:
         i_row = sorted_row_indices[4]
@@ -332,13 +326,14 @@ class Puzzle:
                           if c[i_col1] == d1 and c[i_col2] == d2 and c[i_col3] == d3]
                 combos_for[(d0, d1, d2, d3)] = valids
 
-            valid_combos = [(row0, col0, row1, col1, row2, col2, row3, col3, c) for c in valids]
-            new_combos.extend(valid_combos)
+            valids = [c for c in valids if are_parallel_combos_congruent(c, row0, row1, row2, row3)]
+            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, c) for c in valids]
+            new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step7", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
+        #dt = 1000*(time.time() - t1)
+        #print(" step7", f"dt={dt:6.0f} ms", f"c={len(combos)}", combos[0])
+        #t1 = time.time()
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4:
         i_row0, i_row1, i_row2, i_row3, i_row4 = sorted_row_indices[:5]
@@ -354,13 +349,14 @@ class Puzzle:
                           if c[i_row1] == d1 and c[i_row2] == d2 and c[i_row3] == d3 and c[i_row4] == d4]
                 combos_for[(d0, d1, d2, d3, d4)] = valids
 
-            valid_combos = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, c) for c in valids]
-            new_combos.extend(valid_combos)
+            valids = [c for c in valids if are_parallel_combos_congruent(c, col0, col1, col2, col3)]
+            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, c) for c in valids]
+            new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step8", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
+        #dt = 1000*(time.time() - t1)
+        #print(" step8", f"dt={dt:6.0f} ms", f"c={len(combos)}", combos[0])
+        #t1 = time.time()
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5:
         i_row = sorted_row_indices[5]
@@ -375,13 +371,12 @@ class Puzzle:
                 valids = [c for c in combos_with_digit_in_position_in_row[i_row][i_col0].get(d0, [])
                           if c[i_col1] == d1 and c[i_col2] == d2 and c[i_col3] == d3 and c[i_col4] == d4]
                 combos_for[(d0, d1, d2, d3, d4)] = valids
-            valid_combos = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, c) for c in valids]
-            new_combos.extend(valid_combos)
+
+            valids = [c for c in valids if are_parallel_combos_congruent(c, row0, row1, row2, row3, row4)]
+            valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, c) for c in valids]
+            new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step9", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5:
         i_row0, i_row1, i_row2, i_row3, i_row4, i_row5 = sorted_row_indices[:6]
@@ -397,17 +392,15 @@ class Puzzle:
                           if c[i_row1] == d1 and c[i_row2] == d2 and c[i_row3] == d3 and c[i_row4] == d4 and c[i_row5] == d5]
                 combos_for[(d0, d1, d2, d3, d4, d5)] = valids
 
+            valids = [c for c in valids if are_parallel_combos_congruent(c, col0, col1, col2, col3, col4)]
             valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, c) for c in valids]
             new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step10", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5-row6:
         i_row = sorted_row_indices[6]
-        i_col0, i_col1, i_col2, i_col3, i_col4, i_col5 = sorted_row_indices[:6]
+        i_col0, i_col1, i_col2, i_col3, i_col4, i_col5 = sorted_col_indices[:6]
         new_combos = []
         combos_for = {}
         for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5 in combos:
@@ -419,23 +412,35 @@ class Puzzle:
                           if c[i_col1] == d1 and c[i_col2] == d2 and c[i_col3] == d3 and c[i_col4] == d4 and c[i_col5] == d5]
                 combos_for[(d0, d1, d2, d3, d4, d5)] = valids
 
+            valids = [c for c in valids if are_parallel_combos_congruent(c, row0, row1, row2, row3, row4, row5)]
             valids = [(row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, c) for c in valids]
             new_combos.extend(valids)
 
         combos = new_combos
-        dt = 1000*(time.time() - t1)
-        print("step11", f"dt={dt:6.0f} ms", f"c={len(combos)}")
-        t1 = time.time()
 
-        print()
+        # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5-row6-col6:
+        i_row0, i_row1, i_row2, i_row3, i_row4, i_row5, i_row6 = sorted_row_indices
+        i_col = sorted_col_indices[6]
+        new_combos = []
+        for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, row6 in combos:
+            rows = [row0, row1, row2, row3, row4, row5, row6]
+            combo = [None for _ in range(N_ELEMENTS)]
+            for i, i_row in enumerate(sorted_row_indices):
+                combo[i_row] = rows[i][i_col]
+            combo = tuple(combo)
+            if combo in combos_with_digit_in_position_in_col[i_col][i_row0].get(combo[i_row0], []):
+                valid = (row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, row6, combo)
+                new_combos.append(valid)
+
+        if len(new_combos) != 1:
+            raise ValueError  # this should never happen
+
+        combos = new_combos
+
         solution = [None for _ in range(N_ELEMENTS)]
         for i, combo in enumerate(combos[0]):
             if not i % 2:  # even, row
                 i_row = sorted_row_indices[i // 2]
-                solution[i_row] = combo
+                solution[i_row] = list(combo)
 
-        for row in solution:
-            print(row)
-
-        print("\n---")
-        return self.solution
+        return solution
