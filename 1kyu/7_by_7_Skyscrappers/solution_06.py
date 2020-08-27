@@ -39,6 +39,15 @@ def are_parallel_combos_congruent(combo_a, *others):
     return True
 
 
+def rotated_solution(solution):
+    r = []
+    for i_col in range(N_ELEMENTS):
+        row = [solution[N_ELEMENTS - 1 - j][i_col] for j in range(N_ELEMENTS)]
+        r.append(row)
+
+    return r
+
+
 class Puzzle:
 
     def __init__(self, clues):
@@ -54,8 +63,8 @@ class Puzzle:
         self._seen_from_sides = None
         self._combos_for_row = None
         self._combos_for_col = None
-
-        self.sorted_data = []
+        self._sorted_row_indices = None
+        self._sorted_col_indices = None
 
     @property
     def row_clues(self):
@@ -100,6 +109,22 @@ class Puzzle:
 
         return self._combos_for_col
 
+    @property
+    def sorted_row_indices(self):
+        if self._sorted_row_indices is None:
+            self._sorted_row_indices = [i for _, i in sorted([(len(self.combos_for_row[i]), i)
+                                                              for i in range(N_ELEMENTS)])]
+
+        return self._sorted_row_indices
+
+    @property
+    def sorted_col_indices(self):
+        if self._sorted_col_indices is None:
+            self._sorted_col_indices = [i for _, i in sorted([(len(self.combos_for_col[i]), i)
+                                                              for i in range(N_ELEMENTS)])]
+
+        return self._sorted_col_indices
+
     def fits_in_row(self, i_row, combo) -> bool:
         left_clue, right_clue = self.row_clues[i_row]
         left_seen, right_seen = self.seen_from_sides[combo]
@@ -125,9 +150,34 @@ class Puzzle:
 
         return True
 
+    def must_rotate(self):
+        second_best_row = len(self.combos_for_row[self.sorted_row_indices[1]])
+        second_best_col = len(self.combos_for_col[self.sorted_col_indices[1]])
+
+        return second_best_row > second_best_col
+
+    def pre_rotate(self):
+        # Rotate input clues:
+        self.clues = self.clues[N_ELEMENTS:] + self.clues[:N_ELEMENTS]
+
+        # Clean:
+        self.skipped_for_step = [0 for _ in range(2 * N_ELEMENTS)]
+        self.combo_for_step = [None for _ in range(2 * N_ELEMENTS)]
+        self.placement_to_index = [None for _ in range(2 * N_ELEMENTS)]
+
+        self._row_clues = None
+        self._col_clues = None
+        self._seen_from_sides = None
+        self._combos_for_row = None
+        self._combos_for_col = None
+        self._sorted_row_indices = None
+        self._sorted_col_indices = None
+
     def solve(self):
-        sorted_row_indices = [i for _, i in sorted([(len(self.combos_for_row[i]), i) for i in range(N_ELEMENTS)])]
-        sorted_col_indices = [i for _, i in sorted([(len(self.combos_for_col[i]), i) for i in range(N_ELEMENTS)])]
+        do_rotate = self.must_rotate()
+
+        if do_rotate:
+            self.pre_rotate()
 
         combos_with_digit_in_position_in_row = {}
         for i_row in range(N_ELEMENTS):
@@ -148,16 +198,16 @@ class Puzzle:
                     combos_with_digit_in_position_in_col[i_col][i][d].append(col_combo)
 
         # row0-col0:
-        i_row = sorted_row_indices[0]
-        i_col = sorted_col_indices[0]
+        i_row = self.sorted_row_indices[0]
+        i_col = self.sorted_col_indices[0]
         combos = []
         for row_combo in self.combos_for_row[i_row]:
             d = row_combo[i_col]
             combos.extend([(row_combo, c) for c in combos_with_digit_in_position_in_col[i_col][i_row].get(d, [])])
 
         # row0-col0-row1:
-        i_row = sorted_row_indices[1]
-        i_col = sorted_col_indices[0]
+        i_row = self.sorted_row_indices[1]
+        i_col = self.sorted_col_indices[0]
         new_combos = []
         for row0, col0 in combos:
             d = col0[i_row]
@@ -168,8 +218,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1:
-        i_row0, i_row1 = sorted_row_indices[:2]
-        i_col = sorted_col_indices[1]
+        i_row0, i_row1 = self.sorted_row_indices[:2]
+        i_col = self.sorted_col_indices[1]
         new_combos = []
         cols_for = {}
         for row0, col0, row1 in combos:
@@ -186,8 +236,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2:
-        i_row = sorted_row_indices[2]
-        i_col0, i_col1 = sorted_col_indices[:2]
+        i_row = self.sorted_row_indices[2]
+        i_col0, i_col1 = self.sorted_col_indices[:2]
         new_combos = []
         rows_for = {}
         for row0, col0, row1, col1 in combos:
@@ -204,8 +254,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2-col2:
-        i_row0, i_row1, i_row2 = sorted_row_indices[:3]
-        i_col = sorted_col_indices[2]
+        i_row0, i_row1, i_row2 = self.sorted_row_indices[:3]
+        i_col = self.sorted_col_indices[2]
         new_combos = []
         cols_for = {}
         for row0, col0, row1, col1, row2 in combos:
@@ -224,8 +274,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2-col2-row3:
-        i_row = sorted_row_indices[3]
-        i_col0, i_col1, i_col2 = sorted_col_indices[:3]
+        i_row = self.sorted_row_indices[3]
+        i_col0, i_col1, i_col2 = self.sorted_col_indices[:3]
         new_combos = []
         rows_for = {}
         for row0, col0, row1, col1, row2, col2 in combos:
@@ -244,8 +294,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2-col2-row3-col3:
-        i_row0, i_row1, i_row2, i_row3 = sorted_row_indices[:4]
-        i_col = sorted_col_indices[3]
+        i_row0, i_row1, i_row2, i_row3 = self.sorted_row_indices[:4]
+        i_col = self.sorted_col_indices[3]
         new_combos = []
         cols_for = {}
         for row0, col0, row1, col1, row2, col2, row3 in combos:
@@ -264,8 +314,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4:
-        i_row = sorted_row_indices[4]
-        i_col0, i_col1, i_col2, i_col3 = sorted_col_indices[:4]
+        i_row = self.sorted_row_indices[4]
+        i_col0, i_col1, i_col2, i_col3 = self.sorted_col_indices[:4]
         new_combos = []
         combos_for = {}
         for row0, col0, row1, col1, row2, col2, row3, col3 in combos:
@@ -284,8 +334,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4:
-        i_row0, i_row1, i_row2, i_row3, i_row4 = sorted_row_indices[:5]
-        i_col = sorted_col_indices[4]
+        i_row0, i_row1, i_row2, i_row3, i_row4 = self.sorted_row_indices[:5]
+        i_col = self.sorted_col_indices[4]
         new_combos = []
         combos_for = {}
         for row0, col0, row1, col1, row2, col2, row3, col3, row4 in combos:
@@ -304,8 +354,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5:
-        i_row = sorted_row_indices[5]
-        i_col0, i_col1, i_col2, i_col3, i_col4 = sorted_col_indices[:5]
+        i_row = self.sorted_row_indices[5]
+        i_col0, i_col1, i_col2, i_col3, i_col4 = self.sorted_col_indices[:5]
         new_combos = []
         combos_for = {}
         for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4 in combos:
@@ -324,8 +374,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5:
-        i_row0, i_row1, i_row2, i_row3, i_row4, i_row5 = sorted_row_indices[:6]
-        i_col = sorted_col_indices[5]
+        i_row0, i_row1, i_row2, i_row3, i_row4, i_row5 = self.sorted_row_indices[:6]
+        i_col = self.sorted_col_indices[5]
         new_combos = []
         combos_for = {}
         for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5 in combos:
@@ -344,8 +394,8 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5-row6:
-        i_row = sorted_row_indices[6]
-        i_col0, i_col1, i_col2, i_col3, i_col4, i_col5 = sorted_col_indices[:6]
+        i_row = self.sorted_row_indices[6]
+        i_col0, i_col1, i_col2, i_col3, i_col4, i_col5 = self.sorted_col_indices[:6]
         new_combos = []
         combos_for = {}
         for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5 in combos:
@@ -364,13 +414,13 @@ class Puzzle:
         combos = new_combos
 
         # row0-col0-row1-col1-row2-col2-row3-col3-row4-col4-row5-col5-row6-col6:
-        i_row0, i_row1, i_row2, i_row3, i_row4, i_row5, i_row6 = sorted_row_indices
-        i_col = sorted_col_indices[6]
+        i_row0, i_row1, i_row2, i_row3, i_row4, i_row5, i_row6 = self.sorted_row_indices
+        i_col = self.sorted_col_indices[6]
         new_combos = []
         for row0, col0, row1, col1, row2, col2, row3, col3, row4, col4, row5, col5, row6 in combos:
             rows = [row0, row1, row2, row3, row4, row5, row6]
             combo = [None for _ in range(N_ELEMENTS)]
-            for i, i_row in enumerate(sorted_row_indices):
+            for i, i_row in enumerate(self.sorted_row_indices):
                 combo[i_row] = rows[i][i_col]
             combo = tuple(combo)
             if combo in combos_with_digit_in_position_in_col[i_col][i_row0].get(combo[i_row0], []):
@@ -384,7 +434,10 @@ class Puzzle:
         solution = [None for _ in range(N_ELEMENTS)]
         for i, combo in enumerate(combos[0]):
             if not i % 2:  # even, row
-                i_row = sorted_row_indices[i // 2]
+                i_row = self.sorted_row_indices[i // 2]
                 solution[i_row] = list(combo)
 
-        return solution
+        if do_rotate:
+            return rotated_solution(solution)
+        else:
+            return solution
