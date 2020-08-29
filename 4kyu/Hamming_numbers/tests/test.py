@@ -3,6 +3,29 @@ import unittest
 from hamming_numbers import hamming
 
 
+CASES = [
+    (1, 1),
+    (2, 2),
+    (3, 3),
+    (4, 4),
+    (5, 5),
+    (6, 6),
+    (7, 8),
+    (8, 9),
+    (9, 10),
+    (10, 12),
+    (11, 15),
+    (12, 16),
+    (13, 18),
+    (14, 20),
+    (15, 24),
+    (16, 25),
+    (17, 27),
+    (18, 30),
+    (19, 32),
+]
+
+
 class TestFunctions(unittest.TestCase):
 
     def setUp(self):
@@ -11,6 +34,6 @@ class TestFunctions(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def hamming_1(self):
-        self.assertEqual(hamming(1), 1)
-
+    def test_hamming(self):
+        for index, expected in CASES:
+            self.assertEqual(hamming(index), expected)
