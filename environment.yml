@@ -3,4 +3,8 @@ channels:
   - defaults
 dependencies:
   - python=3.8.5
-  - coverage=5.0
+  - coverage=5.0.4
+  - flake8=3.7.9
+  - pip=20.2.2
+  - pip:
+      - radon==4.2.0
